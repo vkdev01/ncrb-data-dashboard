@@ -1,0 +1,182 @@
+/**
+ * Bundled fallback snapshot.
+ *
+ * The dashboard prefers to fetch live data at runtime (see `sources.ts`).
+ * This snapshot is what renders when the live source is unreachable — so the
+ * site is never blank. It is a *subset* of the full dataset (the live feed
+ * carries longer series), and every figure below is NCRB-derived.
+ *
+ * Source: NCRB "Crime in India 2023" (+ MoRTH / BPRD / I4C where noted),
+ * as published via indiandataproject.org's open-data endpoints.
+ * Snapshot taken: 2026-10-25.
+ */
+import type { Cybercrime, Overview, Summary, WomenSafety } from './types';
+
+export const fallbackSummary: Summary = {
+  year: '2025-26',
+  dataYear: '2023',
+  totalCrimes: 6241569,
+  crimeRate: 448.3,
+  roadDeaths: 172890,
+  chargesheetRatePct: 72.7,
+  convictionRatePct: 54.0,
+  womenCrimes: 448211,
+  cybercrimes: 86420,
+  policeRatioActual: 154.84,
+  lastUpdated: '2026-07-15',
+  source: 'NCRB Crime in India 2023 + MoRTH 2023 + BPRD 2023',
+};
+
+export const fallbackOverview: Overview = {
+  year: '2025-26',
+  nationalTrend: [
+    { year: '2014', total: 4730830, ipc: 2851563, sll: 1879267, rate: 374.6 },
+    { year: '2015', total: 4647459, ipc: 2810024, sll: 1837435, rate: 363.0 },
+    { year: '2016', total: 4831515, ipc: 2975711, sll: 1855804, rate: 372.6 },
+    { year: '2017', total: 5059089, ipc: 3091676, sll: 1967413, rate: 385.5 },
+    { year: '2018', total: 5015127, ipc: 3132954, sll: 1882173, rate: 377.8 },
+    { year: '2019', total: 5156172, ipc: 3225701, sll: 1930471, rate: 383.5 },
+    { year: '2020', total: 6601285, ipc: 4254356, sll: 2346929, rate: 487.8 },
+    { year: '2021', total: 6096310, ipc: 3663360, sll: 2432950, rate: 445.9 },
+    { year: '2022', total: 5824946, ipc: 3561379, sll: 2263567, rate: 422.2 },
+    { year: '2023', total: 6241569, ipc: 3763102, sll: 2478467, rate: 448.3 },
+  ],
+  ipcComposition: [
+    { id: 'theft', name: 'Theft', cases: 689580, pct: 18.3 },
+    { id: 'hurt', name: 'Causing Hurt', cases: 636767, pct: 16.9 },
+    { id: 'cheating', name: 'Forgery, Cheating & Fraud', cases: 181553, pct: 4.8 },
+    { id: 'cruelty-women', name: 'Cruelty by Husband/Relatives', cases: 133676, pct: 3.6 },
+    { id: 'kidnapping', name: 'Kidnapping & Abduction', cases: 113564, pct: 3.0 },
+    { id: 'burglary', name: 'Burglary', cases: 107573, pct: 2.9 },
+    { id: 'assault-women', name: 'Assault on Women', cases: 83891, pct: 2.2 },
+    { id: 'riots', name: 'Riots', cases: 39260, pct: 1.0 },
+    { id: 'rape', name: 'Rape', cases: 29670, pct: 0.8 },
+    { id: 'murder', name: 'Murder', cases: 27721, pct: 0.7 },
+    { id: 'robbery', name: 'Robbery', cases: 26599, pct: 0.7 },
+    { id: 'other-ipc', name: 'Other IPC Crimes', cases: 1693248, pct: 45.1 },
+  ],
+  stateRates: [
+    { id: 'KL', name: 'Kerala', rate: 1631.2, total: 584373 },
+    { id: 'DL', name: 'Delhi', rate: 1602.0, total: 344263 },
+    { id: 'GJ', name: 'Gujarat', rate: 806.3, total: 578879 },
+    { id: 'HR', name: 'Haryana', rate: 739.2, total: 224216 },
+    { id: 'TN', name: 'Tamil Nadu', rate: 701.4, total: 539651 },
+    { id: 'MN', name: 'Manipur', rate: 627.8, total: 20283 },
+    { id: 'MP', name: 'Madhya Pradesh', rate: 570.3, total: 495708 },
+    { id: 'TS', name: 'Telangana', rate: 481.6, total: 183644 },
+    { id: 'MH', name: 'Maharashtra', rate: 470.4, total: 596103 },
+    { id: 'OD', name: 'Odisha', rate: 431.2, total: 199954 },
+    { id: 'RJ', name: 'Rajasthan', rate: 390.4, total: 317480 },
+    { id: 'CG', name: 'Chhattisgarh', rate: 381.2, total: 115493 },
+    { id: 'AP', name: 'Andhra Pradesh', rate: 346.3, total: 184293 },
+    { id: 'UP', name: 'Uttar Pradesh', rate: 335.3, total: 793020 },
+    { id: 'MZ', name: 'Mizoram', rate: 326.3, total: 4050 },
+    { id: 'KA', name: 'Karnataka', rate: 315.8, total: 214234 },
+    { id: 'UK', name: 'Uttarakhand', rate: 291.3, total: 34017 },
+    { id: 'BR', name: 'Bihar', rate: 277.5, total: 353502 },
+    { id: 'HP', name: 'Himachal Pradesh', rate: 267.2, total: 19987 },
+    { id: 'PB', name: 'Punjab', rate: 227.1, total: 69944 },
+    { id: 'JK', name: 'Jammu & Kashmir', rate: 217.0, total: 29595 },
+    { id: 'GA', name: 'Goa', rate: 195.4, total: 3082 },
+    { id: 'AR', name: 'Arunachal Pradesh', rate: 187.9, total: 2941 },
+    { id: 'WB', name: 'West Bengal', rate: 181.6, total: 180272 },
+    { id: 'AS', name: 'Assam', rate: 181.3, total: 64959 },
+    { id: 'JH', name: 'Jharkhand', rate: 161.1, total: 63838 },
+    { id: 'TR', name: 'Tripura', rate: 120.4, total: 5002 },
+    { id: 'ML', name: 'Meghalaya', rate: 105.2, total: 3532 },
+    { id: 'SK', name: 'Sikkim', rate: 103.9, total: 718 },
+    { id: 'NL', name: 'Nagaland', rate: 84.9, total: 1899 },
+  ],
+  homicideRate: [
+    { year: '1990', value: 5.11 }, { year: '1991', value: 5.5 }, { year: '1992', value: 5.5 },
+    { year: '1993', value: 5.2 }, { year: '1994', value: 5.04 }, { year: '1995', value: 4.83 },
+    { year: '1996', value: 4.79 }, { year: '1997', value: 4.75 }, { year: '1998', value: 4.84 },
+    { year: '1999', value: 4.6 }, { year: '2000', value: 4.55 }, { year: '2001', value: 4.31 },
+    { year: '2002', value: 4.17 }, { year: '2003', value: 3.97 }, { year: '2004', value: 4.09 },
+    { year: '2005', value: 3.91 }, { year: '2006', value: 3.83 }, { year: '2007', value: 3.81 },
+    { year: '2008', value: 3.81 },
+  ],
+  source: 'NCRB Crime in India 2023 + World Bank',
+};
+
+export const fallbackWomenSafety: WomenSafety = {
+  year: '2025-26',
+  nationalTrend: [
+    { year: '2014', total: 337922, rate: 56.3 },
+    { year: '2015', total: 327394, rate: 53.9 },
+    { year: '2016', total: 338954, rate: 55.2 },
+    { year: '2017', total: 359849, rate: 57.9 },
+    { year: '2018', total: 378236, rate: 58.8 },
+    { year: '2019', total: 405861, rate: 62.4 },
+    { year: '2020', total: 371503, rate: 56.5 },
+    { year: '2021', total: 428278, rate: 64.5 },
+    { year: '2022', total: 445256, rate: 66.4 },
+    { year: '2023', total: 448211, rate: 66.2 },
+  ],
+  crimeTypes: [
+    { id: 'cruelty', name: 'Cruelty by Husband/Relatives', cases: 133676, pct: 29.8 },
+    { id: 'kidnapping', name: 'Kidnapping & Abduction of Women', cases: 88605, pct: 19.8 },
+    { id: 'assault', name: 'Assault to Outrage Modesty', cases: 83891, pct: 18.7 },
+    { id: 'pocso', name: 'POCSO (Child Sexual Offences)', cases: 66232, pct: 14.8 },
+    { id: 'rape', name: 'Rape', cases: 29670, pct: 6.6 },
+    { id: 'dowry-death', name: 'Dowry Deaths', cases: 6156, pct: 1.4 },
+    { id: 'other-women', name: 'Other Crimes Against Women', cases: 39981, pct: 8.9 },
+  ],
+  stateRates: [
+    { id: 'DL', name: 'Delhi', rate: 133.6, total: 13439 },
+    { id: 'TS', name: 'Telangana', rate: 124.9, total: 23678 },
+    { id: 'RJ', name: 'Rajasthan', rate: 114.8, total: 45450 },
+    { id: 'OD', name: 'Odisha', rate: 112.4, total: 25914 },
+    { id: 'HR', name: 'Haryana', rate: 110.3, total: 15758 },
+    { id: 'KL', name: 'Kerala', rate: 86.1, total: 16025 },
+    { id: 'AP', name: 'Andhra Pradesh', rate: 84.2, total: 22418 },
+    { id: 'MH', name: 'Maharashtra', rate: 77.5, total: 47101 },
+    { id: 'MP', name: 'Madhya Pradesh', rate: 76.8, total: 32342 },
+    { id: 'WB', name: 'West Bengal', rate: 71.3, total: 34691 },
+    { id: 'AS', name: 'Assam', rate: 68.6, total: 12070 },
+    { id: 'UK', name: 'Uttarakhand', rate: 66.9, total: 3808 },
+    { id: 'KA', name: 'Karnataka', rate: 60.9, total: 20336 },
+    { id: 'UP', name: 'Uttar Pradesh', rate: 58.6, total: 66381 },
+    { id: 'CG', name: 'Chhattisgarh', rate: 53.2, total: 8035 },
+    { id: 'HP', name: 'Himachal Pradesh', rate: 43.5, total: 1604 },
+    { id: 'AR', name: 'Arunachal Pradesh', rate: 42.8, total: 326 },
+    { id: 'SK', name: 'Sikkim', rate: 41.0, total: 134 },
+    { id: 'TR', name: 'Tripura', rate: 38.7, total: 791 },
+    { id: 'BR', name: 'Bihar', rate: 37.5, total: 22952 },
+    { id: 'ML', name: 'Meghalaya', rate: 37.5, total: 628 },
+    { id: 'GA', name: 'Goa', rate: 36.5, total: 286 },
+    { id: 'JH', name: 'Jharkhand', rate: 36.1, total: 6989 },
+    { id: 'PB', name: 'Punjab', rate: 35.9, total: 5258 },
+    { id: 'MZ', name: 'Mizoram', rate: 29.9, total: 184 },
+    { id: 'TN', name: 'Tamil Nadu', rate: 23.2, total: 8943 },
+    { id: 'GJ', name: 'Gujarat', rate: 22.9, total: 7805 },
+    { id: 'MN', name: 'Manipur', rate: 12.5, total: 201 },
+    { id: 'NL', name: 'Nagaland', rate: 5.2, total: 56 },
+  ],
+  source: 'NCRB Crime in India 2023, Chapter 5',
+};
+
+export const fallbackCybercrime: Cybercrime = {
+  year: '2025-26',
+  ncrbTrend: [
+    { year: '2017', cases: 21796, rate: 1.7 },
+    { year: '2018', cases: 27248, rate: 2.1 },
+    { year: '2019', cases: 44735, rate: 3.3 },
+    { year: '2020', cases: 50035, rate: 3.7 },
+    { year: '2021', cases: 52974, rate: 3.8 },
+    { year: '2022', cases: 65893, rate: 4.8 },
+    { year: '2023', cases: 86420, rate: 6.2 },
+  ],
+  crimeTypes: [
+    { id: 'fraud', name: 'Fraud', cases: 59526, pct: 68.9 },
+    { id: 'sexual', name: 'Sexual Exploitation', cases: 4199, pct: 4.9 },
+    { id: 'extortion', name: 'Extortion', cases: 3326, pct: 3.8 },
+    { id: 'other-cyber', name: 'Other Motives', cases: 19369, pct: 22.4 },
+  ],
+  i4cComplaints: 2268000,
+  i4cFinancialLossCrore: 2290,
+  i4cNote:
+    'I4C complaints are citizen-reported via portal. NCRB counts FIR-registered cases. The gap ' +
+    '(22.68L complaints vs 86,420 cyber FIRs in 2023) reflects under-registration of cybercrime as FIRs.',
+  source: 'NCRB Crime in India 2023 + I4C / cybercrime.gov.in',
+};

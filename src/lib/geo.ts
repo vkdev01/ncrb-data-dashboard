@@ -36,10 +36,12 @@ export async function loadGeo(): Promise<GeoCollection> {
   return res.json();
 }
 
-/** Spherical Mercator, then scaled to a viewBox. */
+/** Spherical Mercator, then scaled to a viewBox.
+ *  Note: x must be in radians too, or the map squashes — degrees and Mercator
+ *  y-units are not the same scale. */
 export function project(geo: GeoCollection, width = 620): ProjectedGeo {
   const toXY = (lon: number, lat: number): [number, number] => [
-    lon,
+    (lon * Math.PI) / 180,
     Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)),
   ];
 

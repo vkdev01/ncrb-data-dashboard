@@ -106,4 +106,30 @@ export function sequentialScale(min: number, max: number, from = '#dbeafe', to =
   };
 }
 
+/**
+ * Rank-based (quantile) ramp.
+ *
+ * Crime counts are heavily skewed — a handful of metro districts dwarf
+ * everywhere else — so a linear min→max ramp leaves almost the whole map at the
+ * pale end, looking like "no data". Ranking by position keeps the variation
+ * visible instead.
+ */
+export function rankScale(values: number[], from = '#e2e8f0', to = '#0f766e') {
+  const sorted = [...values].filter((v) => Number.isFinite(v)).sort((x, y) => x - y);
+  const a = hex2rgb(from);
+  const b = hex2rgb(to);
+  return (v: number) => {
+    if (!Number.isFinite(v) || !sorted.length) return 'var(--surface-3)';
+    let lo = 0;
+    let hi = sorted.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (sorted[mid] <= v) lo = mid + 1;
+      else hi = mid;
+    }
+    const t = sorted.length <= 1 ? 0.5 : lo / sorted.length;
+    return mix(a, b, t);
+  };
+}
+
 export const NO_DATA = 'var(--surface-3)';

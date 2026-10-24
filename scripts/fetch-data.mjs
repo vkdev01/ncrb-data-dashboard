@@ -10,7 +10,7 @@
  *
  * Sources are the same ones the app uses at runtime (see src/lib/data/sources.ts).
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -84,6 +84,39 @@ async function main() {
     })).filter((r) => r.d && r.s);
     await writeFile(resolve(OUT, 'districts.json'), JSON.stringify(rows) + '\n', 'utf8');
     console.log(`✓ ${'districts'.padEnd(12)} ${rows.length} districts (NCRB 2024, via Esri Living Atlas)`);
+
+    // Report how well the district names match the boundary file, so the
+    // coverage figure shown on the map can be checked.
+    try {
+      const geo = JSON.parse(await readFile(resolve(OUT, 'india-districts.geojson'), 'utf8'));
+      const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const byState = new Map();
+      for (const r of rows) {
+        const k = norm(r.s);
+        if (!byState.has(k)) byState.set(k, []);
+        byState.get(k).push({ n: norm(r.d), raw: r.d });
+      }
+      let matched = 0, total = 0;
+      const misses = [];
+      for (const f of geo.features ?? []) {
+        const d = f.properties?.d, s = f.properties?.s;
+        if (!d) continue;
+        total++;
+        const list = byState.get(norm(s)) ?? [];
+        const dn = norm(d);
+        const hit = list.find((x) => x.n === dn);
+        if (hit) matched++;
+        else if (misses.length < 12) misses.push(`${d} (${s})`);
+      }
+      await writeFile(
+        resolve(OUT, 'district-match.json'),
+        JSON.stringify({ rows: rows.length, boundaries: total, matched, unmatched: total - matched, sampleMisses: misses }, null, 2) + '\n',
+        'utf8',
+      );
+      console.log(`✓ ${'match'.padEnd(12)} ${matched}/${total} boundary districts matched exactly (${(((matched / (total || 1)) * 100)).toFixed(1)}%)`);
+    } catch (e) {
+      console.warn(`! match report skipped: ${e.message}`);
+    }
   } catch (err) {
     failures += 1;
     console.warn(`✗ ${'districts'.padEnd(12)} ${err.message}`);

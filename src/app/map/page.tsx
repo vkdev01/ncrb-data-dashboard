@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ChoroplethMap } from '@/components/charts/ChoroplethMap';
 import { useDataset } from '@/lib/hooks/useDataset';
 import { useGeo } from '@/lib/hooks/useGeo';
+import { buildDistrictIndex, normName } from '@/lib/match';
 import { nf, rate as rateFmt } from '@/lib/format';
 
 type Level = 'state' | 'district';
@@ -32,11 +33,14 @@ const DISTRICT_METRICS: Record<DistrictMetric, { label: string; from: string; to
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
-const ALIASES: Record<string, string> = {
+/** Boundary-file spellings that differ from the data, applied before normalising. */
+const STATE_ALIASES: Record<string, string> = {
   Orissa: 'Odisha',
   Uttaranchal: 'Uttarakhand',
   'Jammu and Kashmir': 'Jammu & Kashmir',
 };
+
+const key = (s: string, d: string) => `${normName(s)}|${normName(d)}`;
 
 export default function MapPage() {
   const { data: overview, live, status } = useDataset('overview');
@@ -60,26 +64,40 @@ export default function MapPage() {
     };
   }, []);
 
+  /* ---- state view: normalised lookups ---- */
   const stateMaps = useMemo(() => {
     const rate = new Map<string, number>();
     const total = new Map<string, number>();
     for (const s of overview.stateRates) {
-      rate.set(s.name, s.rate);
-      if (s.total != null) total.set(s.name, s.total);
+      const k = normName(STATE_ALIASES[s.name] ?? s.name);
+      rate.set(k, s.rate);
+      if (s.total != null) total.set(k, s.total);
     }
     const womenRate = new Map<string, number>();
-    for (const s of women.stateRates) womenRate.set(s.name, s.rate);
+    for (const s of women.stateRates) womenRate.set(normName(STATE_ALIASES[s.name] ?? s.name), s.rate);
     return { rate, total, womenRate };
   }, [overview.stateRates, women.stateRates]);
 
-  const districtMap = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of districts ?? []) {
-      const v = districtMetric === 'murder' ? r.murder : r.womenChild;
-      if (typeof v === 'number') m.set(r.d, v);
+  /* ---- district view: fuzzy name matching, evaluated eagerly so we can report coverage ---- */
+  const districtView = useMemo(() => {
+    if (!geo || !districts) return null;
+    const rows = districts
+      .map((r) => ({ d: r.d, s: r.s, v: (districtMetric === 'murder' ? r.murder : r.womenChild) as number }))
+      .filter((r) => typeof r.v === 'number');
+    const index = buildDistrictIndex(rows);
+
+    const values = new Map<string, number>();
+    let total = 0;
+    for (const f of geo.features) {
+      const { d, s } = f.properties;
+      if (!d) continue; // state-level fallback ring
+      total++;
+      const hit = index.get(s, d);
+      if (hit) values.set(key(s, d), hit.value);
     }
-    return m;
-  }, [districts, districtMetric]);
+    const matched = values.size;
+    return { values, matched, total };
+  }, [geo, districts, districtMetric]);
 
   const sm = STATE_METRICS[stateMetric];
   const dm = DISTRICT_METRICS[districtMetric];
@@ -88,6 +106,16 @@ export default function MapPage() {
   const from = level === 'state' ? sm.from : dm.from;
   const to = level === 'state' ? sm.to : dm.to;
   const format = level === 'state' ? sm.fmt : (v: number) => nf(v);
+
+  const valueOf = (f: { district: string; state: string }) =>
+    level === 'state'
+      ? stateMaps[stateMetric].get(normName(STATE_ALIASES[f.state] ?? f.state))
+      : districtView?.values.get(key(f.state, f.district));
+
+  const coverage =
+    level === 'district' && districtView
+      ? `${districtView.matched} of ${districtView.total} district boundaries matched a data row`
+      : undefined;
 
   return (
     <>
@@ -104,8 +132,8 @@ export default function MapPage() {
           title={title}
           caption={
             level === 'state'
-              ? 'Colour shows the state value. Grey means no data for that region.'
-              : 'District-level figures for 2024, from NCRB district tables. Grey means no data.'
+              ? 'Shading is by rank, so the pattern stays visible even though a few states dominate. Grey means no data.'
+              : `District-level figures for 2024, from NCRB district tables. Shading is by rank. Grey means no data${coverage ? ` — ${coverage}.` : '.'}`
           }
           action={
             <div className="seg">
@@ -143,7 +171,7 @@ export default function MapPage() {
 
           {error ? (
             <div className="callout warn">Could not load the boundary file (public/data/india-districts.geojson).</div>
-          ) : level === 'district' && !districts ? (
+          ) : level === 'district' && !districtView ? (
             <div className="chart-empty">
               {districtErr ? 'District data is not available in this build.' : 'Loading district data…'}
             </div>
@@ -152,11 +180,7 @@ export default function MapPage() {
           ) : (
             <ChoroplethMap
               geo={geo}
-              valueOf={(f) =>
-                level === 'state'
-                  ? stateMaps[stateMetric].get(ALIASES[f.state] ?? f.state)
-                  : districtMap.get(f.district)
-              }
+              valueOf={valueOf}
               from={from}
               to={to}
               legendTitle={title}
@@ -168,16 +192,18 @@ export default function MapPage() {
 
         {level === 'district' && districts ? (
           <p className="muted" style={{ fontSize: '0.82rem' }}>
-            {districts.length} districts loaded · NCRB 2024 district tables, published via Esri India's Living Atlas.
-            Names follow the source, so a few may not match the boundary file exactly.
+            {districts.length} district rows loaded · NCRB 2024 district tables, published via Esri India&apos;s Living
+            Atlas. Boundary names and table names differ slightly, so the map matches them by normalised name and, where
+            needed, by closest spelling within the same state.
           </p>
         ) : null}
 
         <div className="callout">
-          <strong>What the colours do and don't mean.</strong> A darker region has a higher <em>recorded</em> figure.
+          <strong>What the colours do and don&apos;t mean.</strong> A darker region has a higher <em>recorded</em> figure.
           That reflects offending, reporting and registration together — areas that register more cases look darker
-          regardless of underlying crime. Boundaries are the 2011-census vintage, so later district splits are not
-          reflected.
+          regardless of underlying crime. Shading is by rank rather than absolute value, so the darkest district is
+          simply the highest, not a fixed multiple of the lightest. Boundaries are the 2011-census vintage, so later
+          district splits are not reflected.
         </div>
       </div>
     </>

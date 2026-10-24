@@ -8,7 +8,7 @@
  *  - `district`: each district is coloured by its own value
  */
 import { useMemo, useState } from 'react';
-import { NO_DATA, project, sequentialScale, type GeoCollection, type PathFeature } from '@/lib/geo';
+import { NO_DATA, project, rankScale, type GeoCollection, type PathFeature } from '@/lib/geo';
 
 interface Props {
   geo: GeoCollection;
@@ -39,7 +39,7 @@ export function ChoroplethMap({
     const vals = projected.features.map((f) => valueOf(f)).filter((v): v is number => typeof v === 'number');
     const min = vals.length ? Math.min(...vals) : 0;
     const max = vals.length ? Math.max(...vals) : 1;
-    return { projected, scale: sequentialScale(min, max, from, to), min, max };
+    return { projected, scale: rankScale(vals, from, to), min, max };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo, from, to]);
 
@@ -75,7 +75,7 @@ export function ChoroplethMap({
 
         {hover && (
           <div className="map-tip" style={{ left: hover.x, top: hover.y }}>
-            <strong>{hover.f.district}</strong>
+            <strong>{hover.f.district || '—'}</strong>
             <span>{hover.f.state}</span>
             <span>
               {typeof hover.v === 'number' ? format(hover.v) : 'no data'}
@@ -85,7 +85,7 @@ export function ChoroplethMap({
       </div>
 
       <div className="map-legend">
-        <span className="map-legend-title">{legendTitle}</span>
+        <span className="map-legend-title">{legendTitle} · ranked shading</span>
         <div className="map-ramp" style={{ background: `linear-gradient(90deg, ${from}, ${to})` }} />
         <div className="map-ramp-labels">
           <span>{format(min)}</span>

@@ -90,6 +90,16 @@ async function main() {
     try {
       const geo = JSON.parse(await readFile(resolve(OUT, 'india-districts.geojson'), 'utf8'));
       const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      // keep in sync with src/lib/match.ts
+      const ALIASES = {
+        ahmednagar: 'ahilyanagar',
+        osmanabad: 'dharashiv',
+        anantapur: 'ananthapuramu',
+        spsnellore: 'sripottisriramulunellore',
+        nilgiris: 'thenilgiris',
+        komarambheem: 'komarambheemasifabad',
+      };
+      const alias = (n) => ALIASES[n] ?? n;
       const byState = new Map();
       for (const r of rows) {
         const k = norm(r.s);
@@ -117,7 +127,7 @@ async function main() {
         if (!d) continue;
         total++;
         const list = byState.get(norm(s)) ?? [];
-        const dn = norm(d);
+        const dn = alias(norm(d));
         if (list.some((x) => x.n === dn)) {
           matched++;
         } else if (list.some((x) => lev(dn, x.n) <= 2)) {

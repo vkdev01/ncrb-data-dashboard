@@ -13,6 +13,26 @@ export function normName(s: string): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+/**
+ * Districts that were officially renamed between the boundary vintage and the
+ * data year. Keys and values are already normalised. Only unambiguous,
+ * documented renames go here — a wrong mapping would colour a district with
+ * another district's figures, which is worse than leaving it grey.
+ */
+export const DISTRICT_ALIASES: Record<string, string> = {
+  ahmednagar: 'ahilyanagar', // Maharashtra, 2023
+  osmanabad: 'dharashiv', // Maharashtra, 2023
+  anantapur: 'ananthapuramu', // Andhra Pradesh
+  spsnellore: 'sripottisriramulunellore', // Andhra Pradesh
+  nilgiris: 'thenilgiris', // Tamil Nadu
+  komarambheem: 'komarambheemasifabad', // Telangana
+};
+
+/** Apply the rename table to a normalised district name. */
+export function resolveAlias(normalised: string): string {
+  return DISTRICT_ALIASES[normalised] ?? normalised;
+}
+
 /** Classic edit distance, capped for speed. */
 export function levenshtein(a: string, b: string): number {
   if (a === b) return 0;
@@ -66,7 +86,7 @@ export function buildDistrictIndex(rows: DistrictDatum[]): DistrictIndex {
   const stats = { exact: 0, fuzzy: 0, miss: 0 };
 
   function get(state: string, district: string): MatchResult | undefined {
-    const dn = normName(district);
+    const dn = resolveAlias(normName(district));
     if (!dn) return undefined;
     const list = byState.get(normName(state));
     if (!list) {

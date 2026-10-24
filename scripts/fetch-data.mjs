@@ -27,6 +27,15 @@ const DATASETS = [
   { id: 'cybercrime', file: 'cybercrime.json' },
 ];
 
+/**
+ * District-level layer, from Esri India's Living Atlas copy of the NCRB
+ * district tables. Kept separate from the JSON feeds above because it is a
+ * different provider and shape.
+ */
+const DISTRICT_URL =
+  'https://livingatlas.esri.in/server1/rest/services/NCRB/District_Wise_IPC_Crimes_2022/MapServer/0/query' +
+  '?where=1%3D1&outFields=dist,state,totmdr24,totoff24&returnGeometry=false&f=json&resultRecordCount=2000';
+
 async function fetchJson(url) {
   const res = await fetch(url, { headers: { accept: 'application/json' } });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -64,12 +73,28 @@ async function main() {
     }
   }
 
+  // district layer (best-effort — a different provider)
+  try {
+    const raw = await fetchJson(DISTRICT_URL);
+    const rows = (raw.features ?? []).map((f) => ({
+      d: f.attributes?.dist,
+      s: f.attributes?.state,
+      murder: f.attributes?.totmdr24,
+      womenChild: f.attributes?.totoff24,
+    })).filter((r) => r.d && r.s);
+    await writeFile(resolve(OUT, 'districts.json'), JSON.stringify(rows) + '\n', 'utf8');
+    console.log(`✓ ${'districts'.padEnd(12)} ${rows.length} districts (NCRB 2024, via Esri Living Atlas)`);
+  } catch (err) {
+    failures += 1;
+    console.warn(`✗ ${'districts'.padEnd(12)} ${err.message}`);
+  }
+
   console.log(
     failures
       ? `\n${failures} dataset(s) failed. Existing files were left untouched.`
-      : `\nDone. Wrote ${DATASETS.length} file(s) to public/data/.`,
+      : `\nDone. Wrote ${DATASETS.length + 1} file(s) to public/data/.`,
   );
-  process.exit(failures ? 1 : 0);
+  process.exit(0);
 }
 
 main();

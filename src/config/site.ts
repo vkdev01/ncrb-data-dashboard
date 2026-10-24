@@ -19,11 +19,13 @@ export interface NavItem {
 
 export const nav: NavItem[] = [
   { href: '/', label: 'Overview', blurb: 'National headline numbers and the ten-year trend.' },
+  { href: '/map', label: 'Map', blurb: 'Choropleth of India by state and district.' },
   { href: '/trends', label: 'Trends', blurb: 'Year-wise totals, IPC vs SLL and crime rate.' },
   { href: '/crime-heads', label: 'Crime heads', blurb: 'How the IPC total breaks down by offence.' },
   { href: '/states', label: 'States', blurb: 'State and UT comparison by crime rate.' },
   { href: '/women', label: 'Women', blurb: 'Crimes against women: trend, types and states.' },
   { href: '/cyber', label: 'Cybercrime', blurb: 'Cyber offences, types and the I4C reporting gap.' },
+  { href: '/transition', label: 'IPC→BNS', blurb: 'The 2024 criminal-law transition, head by head.' },
   { href: '/about', label: 'About', blurb: 'Methodology, sources and limitations.' },
 ];
 

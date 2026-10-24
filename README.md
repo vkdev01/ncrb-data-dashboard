@@ -23,11 +23,13 @@ npm run fetch-data # refresh the bundled data snapshot
 | Route | What it shows |
 |---|---|
 | `/` | Headline KPIs, the ten-year national trend, IPC composition, top state rates |
+| `/map` | Choropleth of India — state view and a district view (2024 district tables) |
 | `/trends` | Year-wise totals, IPC vs SLL, and the population-normalised crime rate |
 | `/crime-heads` | How recorded offences split across offence heads (all-IPC, women, cyber) |
 | `/states` | State/UT comparison by crime rate, with a filterable, sortable table |
 | `/women` | Crimes against women: trend, composition and state-wise rates |
 | `/cyber` | Cybercrime FIRs, composition, and the I4C portal-vs-FIR reporting gap |
+| `/transition` | The 2024 IPC → BNS transition, head by head, with reclassification flags |
 | `/about` | Methodology, sources and limitations |
 
 ## Architecture
@@ -68,8 +70,10 @@ Every dataset is registered once in `src/lib/data/sources.ts` with a **live URL*
 - **data.gov.in** — official *Crime in India* catalogues (ZIP downloads) · <https://www.data.gov.in/catalog/crime-india-2023>
 - **Indian Data Project** — NCRB-derived JSON endpoints, CORS-enabled, no key (used as the live feed) · <https://indiandataproject.org/open-data>
 - **OpenCity (CKAN)** — public-domain mirror of NCRB tables, including CSV resources · <https://data.opencity.in/>
+- **Esri India Living Atlas** — NCRB district tables as queryable feature services (district layer) · <https://livingatlas.esri.in/server1/rest/services/NCRB>
+- **udit-001/india-maps-data** — India district boundaries (GeoJSON), simplified and bundled under `public/data/` · <https://github.com/udit-001/india-maps-data>
 
-NCRB does not publish a clean public API, and data.gov.in requires an API key — which is why the app reads a CORS-enabled NCRB-derived feed at runtime and ships a bundled snapshot for resilience.
+NCRB does not publish a clean public API, and data.gov.in requires an API key — which is why the app reads a CORS-enabled NCRB-derived feed at runtime and ships a bundled snapshot for resilience. The district layer is fetched at build time by `scripts/fetch-data.mjs` and bundled as `public/data/districts.json`.
 
 ## Deployment
 

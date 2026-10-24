@@ -96,24 +96,58 @@ async function main() {
         if (!byState.has(k)) byState.set(k, []);
         byState.get(k).push({ n: norm(r.d), raw: r.d });
       }
-      let matched = 0, total = 0;
+      let matched = 0, total = 0, fuzzy = 0;
       const misses = [];
+      const lev = (a, b) => {
+        if (a === b) return 0;
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+        let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= a.length; i++) {
+          const cur = [i];
+          for (let j = 1; j <= b.length; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+          }
+          prev = cur;
+        }
+        return prev[b.length];
+      };
       for (const f of geo.features ?? []) {
         const d = f.properties?.d, s = f.properties?.s;
         if (!d) continue;
         total++;
         const list = byState.get(norm(s)) ?? [];
         const dn = norm(d);
-        const hit = list.find((x) => x.n === dn);
-        if (hit) matched++;
-        else if (misses.length < 12) misses.push(`${d} (${s})`);
+        if (list.some((x) => x.n === dn)) {
+          matched++;
+        } else if (list.some((x) => lev(dn, x.n) <= 2)) {
+          fuzzy++;
+        } else if (misses.length < 12) {
+          misses.push(`${d} (${s})`);
+        }
       }
+      const covered = matched + fuzzy;
       await writeFile(
         resolve(OUT, 'district-match.json'),
-        JSON.stringify({ rows: rows.length, boundaries: total, matched, unmatched: total - matched, sampleMisses: misses }, null, 2) + '\n',
+        JSON.stringify(
+          {
+            rows: rows.length,
+            boundaries: total,
+            exact: matched,
+            fuzzy,
+            covered,
+            uncovered: total - covered,
+            coveragePct: Number(((covered / (total || 1)) * 100).toFixed(1)),
+            sampleUncovered: misses,
+          },
+          null,
+          2,
+        ) + '\n',
         'utf8',
       );
-      console.log(`✓ ${'match'.padEnd(12)} ${matched}/${total} boundary districts matched exactly (${(((matched / (total || 1)) * 100)).toFixed(1)}%)`);
+      console.log(
+        `✓ ${'match'.padEnd(12)} ${covered}/${total} districts covered (${(((covered / (total || 1)) * 100)).toFixed(1)}%) — ${matched} exact, ${fuzzy} fuzzy`,
+      );
     } catch (e) {
       console.warn(`! match report skipped: ${e.message}`);
     }

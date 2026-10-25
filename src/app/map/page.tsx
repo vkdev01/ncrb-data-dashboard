@@ -99,12 +99,13 @@ export default function MapPage() {
     return () => { alive = false; };
   }, []);
 
-  const metric: Metric = level === 'district' ? DISTRICT_METRICS[metricId] ?? DISTRICT_METRICS.murder : STATE_STATIC[metricId] ?? STATE_TS[metricId] ?? STATE_STATIC.crimeRate;
+  const metric: Metric = level === 'district'
+    ? DISTRICT_METRICS[metricId] ?? DISTRICT_METRICS.murder
+    : STATE_STATIC[metricId] ?? STATE_TS[metricId] ?? DISTRICT_METRICS[metricId] ?? STATE_STATIC.crimeRate;
 
   // reset the metric when the level changes to one that doesn't have it
   useEffect(() => {
     if (level === 'district' && !DISTRICT_METRICS[metricId]) setMetricId('murder');
-    if (level === 'state' && DISTRICT_METRICS[metricId]) setMetricId('crimeRate');
   }, [level, metricId]);
 
   // URL state
@@ -141,6 +142,17 @@ export default function MapPage() {
     const put = (name: string, v: number | null | undefined) => {
       if (typeof v === 'number' && Number.isFinite(v)) m.set(normName(STATE_ALIASES[name] ?? name), v);
     };
+    // Offence heads: the state-level feeds only publish totals, so aggregate the
+    // district table up to the state to make every head mappable at both levels.
+    if (DISTRICT_METRICS[metric.id]) {
+      for (const r of districts ?? []) {
+        const v = Number(r[metric.id]);
+        if (!Number.isFinite(v)) continue;
+        const k = normName(r.s as string);
+        m.set(k, (m.get(k) ?? 0) + v);
+      }
+      return m;
+    }
     if (metric.id === 'crimeRate' || metric.id === 'totalCases') {
       for (const s of overview.stateRates) put(s.name, metric.id === 'crimeRate' ? s.rate : s.total);
     } else if (metric.id === 'womenRate' || metric.id === 'womenCases') {
@@ -157,7 +169,7 @@ export default function MapPage() {
       for (const r of ts) put(r.state, r[field]?.[String(year)] ?? null);
     }
     return m;
-  }, [metric.id, overview.stateRates, women.stateRates, police.stateRatios, indicators.indicators, ts, year]);
+  }, [metric.id, overview.stateRates, women.stateRates, police.stateRatios, indicators.indicators, ts, year, districts]);
 
   /* ------------------------------------------------------- district values */
   const districtView = useMemo(() => {
@@ -219,7 +231,7 @@ export default function MapPage() {
   }, [geo, level, stateValues, districtView]);
 
   const grouped = useMemo(() => {
-    const src = level === 'state' ? { ...STATE_STATIC, ...STATE_TS } : DISTRICT_METRICS;
+    const src = level === 'state' ? { ...STATE_STATIC, ...STATE_TS, ...DISTRICT_METRICS } : DISTRICT_METRICS;
     const groups = new Map<string, Metric[]>();
     for (const m of Object.values(src)) {
       if (!groups.has(m.group)) groups.set(m.group, []);
@@ -245,7 +257,9 @@ export default function MapPage() {
           title={metric.label + (metric.years ? ` · ${year}` : '')}
           caption={
             level === 'state'
-              ? 'Shading is by rank, so the pattern stays visible even though a few states dominate. Grey means no data.'
+              ? DISTRICT_METRICS[metric.id]
+                ? 'Offence head, aggregated from district totals to the state. Shading is by rank.'
+                : 'Shading is by rank, so the pattern stays visible even though a few states dominate. Grey means no data.'
               : `District-level figures for 2024. Shading is by rank.${coverage ? ` ${coverage}.` : ''}`
           }
           action={

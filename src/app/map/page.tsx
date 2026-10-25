@@ -402,7 +402,15 @@ export default function MapPage() {
         </details>
 
         <div className="callout">
-          <strong>What the colours do and don&apos;t mean.</strong> A darker region has a higher <em>recorded</em> figure. That reflects offending, reporting and registration together — areas that register more cases look darker regardless of underlying crime. Shading is by rank, not absolute value. Boundaries are the 2011-census vintage. The timeline runs 2020–2024 for violent-crime counts and 2022–2024 for rates.
+          <strong>What the colours do and don&apos;t mean.</strong> A darker region has a higher <em>recorded</em> figure. That reflects offending, reporting and registration together — areas that register more cases look darker regardless of underlying crime. Shading is by rank, not absolute value. Boundaries are the 2011-census vintage.
+        </div>
+
+        <div className="callout warn">
+          <strong>Read the timeline&apos;s 2024 step with care.</strong> Violent-crime counts jump sharply in 2024 across
+          almost every state — Odisha 31,749 → 75,403, Bihar 52,165 → 107,303, Maharashtra 46,249 → 87,791. That is
+          overwhelmingly the <em>IPC → BNS reclassification</em>, which changed what falls under each head and brought
+          new offences into the count. It is not a sudden surge in violent crime. Treat 2020–2023 as comparable with
+          each other, and 2024 as a different legal basis.
         </div>
       </div>
     </>

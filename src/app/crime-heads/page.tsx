@@ -50,7 +50,13 @@ export default function CrimeHeadsPage() {
         </div>
 
         <Card title="All IPC crime heads" caption="Click a header to sort.">
-          <DataTable rows={overview.ipcComposition} columns={headColumns()} initialSort="cases" />
+          <DataTable
+            rows={overview.ipcComposition}
+            columns={headColumns()}
+            initialSort="cases"
+            exportName="ncrb-ipc-heads"
+            csvRow={(r) => ({ crime_head: r.name, cases: r.cases, share_pct: r.pct })}
+          />
         </Card>
 
         <div className="grid-2">

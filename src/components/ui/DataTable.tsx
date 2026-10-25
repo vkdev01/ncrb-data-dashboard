@@ -5,6 +5,7 @@
  * again to reverse. Column definitions keep it reusable across pages.
  */
 import { useMemo, useState, type ReactNode } from 'react';
+import { ExportButton } from './ExportButton';
 
 export interface Column<T> {
   key: string;
@@ -24,6 +25,9 @@ interface Props<T> {
   initialDir?: 'asc' | 'desc';
   rowClassName?: (row: T) => string;
   caption?: string;
+  /** When set, a CSV download button appears for the current (sorted) rows. */
+  exportName?: string;
+  csvRow?: (row: T) => Record<string, unknown>;
 }
 
 export function DataTable<T>({
@@ -33,6 +37,8 @@ export function DataTable<T>({
   initialDir = 'desc',
   rowClassName,
   caption,
+  exportName,
+  csvRow,
 }: Props<T>) {
   const [sortKey, setSortKey] = useState<string | undefined>(initialSort);
   const [dir, setDir] = useState<'asc' | 'desc'>(initialDir);
@@ -59,8 +65,15 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="table-wrap">
-      <table className="dtable">
+    <div className="table-block">
+      {exportName && csvRow ? (
+        <div className="table-tools">
+          <span className="muted" style={{ fontSize: '0.78rem' }}>{sorted.length} rows</span>
+          <ExportButton rows={sorted.map(csvRow)} filename={exportName} />
+        </div>
+      ) : null}
+      <div className="table-wrap">
+        <table className="dtable">
         {caption ? <caption>{caption}</caption> : null}
         <thead>
           <tr>
@@ -89,7 +102,8 @@ export function DataTable<T>({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

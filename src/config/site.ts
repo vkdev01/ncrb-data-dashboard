@@ -25,7 +25,9 @@ export const nav: NavItem[] = [
   { href: '/states', label: 'States', blurb: 'State and UT comparison by crime rate.' },
   { href: '/women', label: 'Women', blurb: 'Crimes against women: trend, types and states.' },
   { href: '/cyber', label: 'Cybercrime', blurb: 'Cyber offences, types and the I4C reporting gap.' },
+  { href: '/justice', label: 'Justice', blurb: 'Police strength and the FIR-to-conviction pipeline.' },
   { href: '/transition', label: 'IPC→BNS', blurb: 'The 2024 criminal-law transition, head by head.' },
+  { href: '/glossary', label: 'Glossary', blurb: 'What the crime heads and terms actually mean.' },
   { href: '/about', label: 'About', blurb: 'Methodology, sources and limitations.' },
 ];
 

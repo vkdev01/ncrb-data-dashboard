@@ -29,8 +29,20 @@ npm run fetch-data # refresh the bundled data snapshot
 | `/states` | State/UT comparison by crime rate, with a filterable, sortable table |
 | `/women` | Crimes against women: trend, composition and state-wise rates |
 | `/cyber` | Cybercrime FIRs, composition, and the I4C portal-vs-FIR reporting gap |
-| `/transition` | The 2024 IPC → BNS transition, head by head, with reclassification flags |
+| `/justice` | Police strength against sanctioned posts, and the FIR → charge-sheet → conviction pipeline |
+| `/transition` | The 2024 IPC → BNS transition, head by head, with reclassification flags and contribution analysis |
+| `/glossary` | Plain-language definitions of the crime heads, legal categories and statistical terms |
 | `/about` | Methodology, sources and limitations |
+
+## Features
+
+- **Live data with a bundled fallback** — each dataset declares a live URL and a snapshot; a badge on every page says which one you are seeing.
+- **Choropleth map** — state and district views, rank-based shading, click a state to list its districts.
+- **CSV export** — every table (and the map) can be downloaded.
+- **Shareable URLs** — the map encodes its level, metric and selection in the query string.
+- **Dark mode** — follows the system by default, with an explicit toggle.
+- **Accessible alternatives** — a table view of the map, native SVG titles on every region.
+- **Unit tests** — `npm test` (Vitest) covers the analytics, the district-name matcher, CSV and the projection. CI runs them before deploying.
 
 ## Architecture
 

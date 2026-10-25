@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
       - name: Refresh data snapshot (best-effort)
         run: npm run fetch-data || echo "::warning::live data refresh failed — building with the bundled snapshot"
 

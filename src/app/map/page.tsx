@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ChoroplethMap } from '@/components/charts/ChoroplethMap';
+import { ExportButton } from '@/components/ui/ExportButton';
 import { useDataset } from '@/lib/hooks/useDataset';
 import { useGeo } from '@/lib/hooks/useGeo';
 import { buildDistrictIndex, normName } from '@/lib/match';
@@ -33,7 +34,6 @@ const DISTRICT_METRICS: Record<DistrictMetric, { label: string; from: string; to
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
-/** Boundary-file spellings that differ from the data, applied before normalising. */
 const STATE_ALIASES: Record<string, string> = {
   Orissa: 'Odisha',
   Uttaranchal: 'Uttarakhand',
@@ -50,8 +50,10 @@ export default function MapPage() {
   const [level, setLevel] = useState<Level>('state');
   const [stateMetric, setStateMetric] = useState<StateMetric>('rate');
   const [districtMetric, setDistrictMetric] = useState<DistrictMetric>('murder');
+  const [selected, setSelected] = useState<string | null>(null);
   const [districts, setDistricts] = useState<DistrictRow[] | null>(null);
   const [districtErr, setDistrictErr] = useState(false);
+  const firstSync = useRef(true);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +66,32 @@ export default function MapPage() {
     };
   }, []);
 
-  /* ---- state view: normalised lookups ---- */
+  /* ---- shareable URL state: read once, then keep the query string in sync ---- */
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const l = p.get('level');
+    const m = p.get('metric');
+    const s = p.get('state');
+    if (l === 'state' || l === 'district') setLevel(l);
+    if (m && m in STATE_METRICS) setStateMetric(m as StateMetric);
+    if (m && m in DISTRICT_METRICS) {
+      setDistrictMetric(m as DistrictMetric);
+      setLevel('district');
+    }
+    if (s) setSelected(s);
+  }, []);
+
+  useEffect(() => {
+    if (firstSync.current) {
+      firstSync.current = false;
+      return;
+    }
+    const metric = level === 'state' ? stateMetric : districtMetric;
+    const params = new URLSearchParams({ level, metric });
+    if (selected) params.set('state', selected);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, [level, stateMetric, districtMetric, selected]);
+
   const stateMaps = useMemo(() => {
     const rate = new Map<string, number>();
     const total = new Map<string, number>();
@@ -78,30 +105,47 @@ export default function MapPage() {
     return { rate, total, womenRate };
   }, [overview.stateRates, women.stateRates]);
 
-  /* ---- district view: fuzzy name matching, evaluated eagerly so we can report coverage ---- */
   const districtView = useMemo(() => {
     if (!geo || !districts) return null;
     const rows = districts
       .map((r) => ({ d: r.d, s: r.s, v: (districtMetric === 'murder' ? r.murder : r.womenChild) as number }))
       .filter((r) => typeof r.v === 'number');
     const index = buildDistrictIndex(rows);
-
     const values = new Map<string, number>();
     let total = 0;
     for (const f of geo.features) {
       const { d, s } = f.properties;
-      if (!d) continue; // state-level fallback ring
+      if (!d) continue;
       total++;
       const hit = index.get(s, d);
       if (hit) values.set(key(s, d), hit.value);
     }
-    const matched = values.size;
-    return { values, matched, total };
+    return { values, matched: values.size, total };
   }, [geo, districts, districtMetric]);
+
+  /* ---- rows for the drill-down table + CSV ---- */
+  const selectedRows = useMemo(() => {
+    if (!selected || !districts) return [];
+    const target = normName(selected);
+    return districts
+      .filter((r) => normName(r.s) === target)
+      .map((r) => ({ district: r.d, state: r.s, murders_2024: r.murder ?? null, women_child_2024: r.womenChild ?? null }))
+      .sort((a, b) => (b.murders_2024 ?? 0) - (a.murders_2024 ?? 0));
+  }, [selected, districts]);
+
+  const allStateRows = useMemo(
+    () =>
+      overview.stateRates.map((s) => ({
+        state: s.name,
+        crime_rate_per_100k: s.rate,
+        cases: s.total ?? null,
+        women_crime_rate_per_100k_women: women.stateRates.find((w) => w.name === s.name)?.rate ?? null,
+      })),
+    [overview.stateRates, women.stateRates],
+  );
 
   const sm = STATE_METRICS[stateMetric];
   const dm = DISTRICT_METRICS[districtMetric];
-
   const title = level === 'state' ? sm.label : dm.label;
   const from = level === 'state' ? sm.from : dm.from;
   const to = level === 'state' ? sm.to : dm.to;
@@ -121,7 +165,7 @@ export default function MapPage() {
     <>
       <PageHeader
         title="Map of India"
-        description="Recorded crime drawn over India's boundaries. Switch between the state view (every district inherits its state's value) and the district view, then hover any region."
+        description="Recorded crime drawn over India's boundaries. Click any region to see its districts, and use the table view for a screen-reader friendly alternative."
         live={live}
         status={status}
         source={overview.source}
@@ -132,7 +176,7 @@ export default function MapPage() {
           title={title}
           caption={
             level === 'state'
-              ? 'Shading is by rank, so the pattern stays visible even though a few states dominate. Grey means no data.'
+              ? 'Shading is by rank, so the pattern stays visible even though a few states dominate. Grey means no data. Click a state to list its districts.'
               : `District-level figures for 2024, from NCRB district tables. Shading is by rank. Grey means no data${coverage ? ` — ${coverage}.` : '.'}`
           }
           action={
@@ -185,18 +229,90 @@ export default function MapPage() {
               to={to}
               legendTitle={title}
               format={format}
+              onSelect={(f) => setSelected(f.state)}
               ariaLabel={`India choropleth: ${title}`}
             />
           )}
         </Card>
 
-        {level === 'district' && districts ? (
-          <p className="muted" style={{ fontSize: '0.82rem' }}>
-            {districts.length} district rows loaded · NCRB 2024 district tables, published via Esri India&apos;s Living
-            Atlas. Boundary names and table names differ slightly, so the map matches them by normalised name and, where
-            needed, by closest spelling within the same state.
-          </p>
+        {selected ? (
+          <Card
+            title={`Districts in ${selected}`}
+            caption={`${selectedRows.length} districts · 2024 figures from NCRB district tables.`}
+            action={selectedRows.length ? <ExportButton rows={selectedRows} filename={`ncrb-districts-${normName(selected)}`} /> : null}
+          >
+            {selectedRows.length ? (
+              <div className="table-wrap">
+                <table className="dtable">
+                  <thead>
+                    <tr>
+                      <th>District</th>
+                      <th style={{ textAlign: 'right' }}>Murders</th>
+                      <th style={{ textAlign: 'right' }}>Offences vs women &amp; children</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedRows.map((r) => (
+                      <tr key={r.district}>
+                        <td>{r.district}</td>
+                        <td className="num" style={{ textAlign: 'right' }}>{r.murders_2024 != null ? nf(r.murders_2024) : '—'}</td>
+                        <td className="num" style={{ textAlign: 'right' }}>{r.women_child_2024 != null ? nf(r.women_child_2024) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted">
+                No district rows for this state in the dataset — it may be a union territory reported without district detail.
+              </p>
+            )}
+          </Card>
         ) : null}
+
+        <details className="card" open={false}>
+          <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--ink)' }}>
+            View as a table (accessible alternative)
+          </summary>
+          <div style={{ marginTop: 14 }}>
+            <div className="table-tools" style={{ marginBottom: 8 }}>
+              <span className="muted" style={{ fontSize: '0.78rem' }}>{allStateRows.length} states &amp; UTs</span>
+              <ExportButton rows={allStateRows} filename="ncrb-states-map-values" />
+            </div>
+            <div className="table-wrap">
+              <table className="dtable">
+                <thead>
+                  <tr>
+                    <th>State / UT</th>
+                    <th style={{ textAlign: 'right' }}>Crime rate</th>
+                    <th style={{ textAlign: 'right' }}>Cases</th>
+                    <th style={{ textAlign: 'right' }}>Women (rate)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allStateRows.map((r) => (
+                    <tr key={r.state}>
+                      <td>{r.state}</td>
+                      <td className="num" style={{ textAlign: 'right' }}>{rateFmt(r.crime_rate_per_100k)}</td>
+                      <td className="num" style={{ textAlign: 'right' }}>{r.cases != null ? nf(r.cases) : '—'}</td>
+                      <td className="num" style={{ textAlign: 'right' }}>{r.women_crime_rate_per_100k_women != null ? rateFmt(r.women_crime_rate_per_100k_women) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {districts ? (
+              <div className="table-tools" style={{ marginTop: 12 }}>
+                <span className="muted" style={{ fontSize: '0.78rem' }}>{districts.length} district rows</span>
+                <ExportButton
+                  rows={districts.map((d) => ({ district: d.d, state: d.s, murders_2024: d.murder ?? null, women_child_2024: d.womenChild ?? null }))}
+                  filename="ncrb-districts-2024-all"
+                  label="CSV (all districts)"
+                />
+              </div>
+            ) : null}
+          </div>
+        </details>
 
         <div className="callout">
           <strong>What the colours do and don&apos;t mean.</strong> A darker region has a higher <em>recorded</em> figure.

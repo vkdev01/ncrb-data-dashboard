@@ -98,7 +98,14 @@ export default function TrendsPage() {
         </Card>
 
         <Card title="Year-by-year table" caption="Click a column header to sort.">
-          <DataTable rows={trend} columns={columns} initialSort="year" initialDir="asc" />
+          <DataTable
+            rows={trend}
+            columns={columns}
+            initialSort="year"
+            initialDir="asc"
+            exportName="ncrb-national-trend"
+            csvRow={(r) => ({ year: r.year, total: r.total, ipc: r.ipc, sll: r.sll, rate_per_100k: r.rate })}
+          />
         </Card>
       </div>
     </>

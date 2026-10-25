@@ -84,7 +84,13 @@ export default function WomenPage() {
         </div>
 
         <Card title="All states & UTs" caption="Rate is per 100,000 women in that state.">
-          <DataTable rows={data.stateRates} columns={columns} initialSort="rate" />
+          <DataTable
+            rows={data.stateRates}
+            columns={columns}
+            initialSort="rate"
+            exportName="ncrb-women-state-rates"
+            csvRow={(r) => ({ state: r.name, rate_per_100k_women: r.rate, cases: r.total ?? null })}
+          />
         </Card>
 
         <div className="callout">

@@ -7,11 +7,13 @@ import { HorizontalBars } from '@/components/charts/HorizontalBars';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { headComparisons, newBnsHeads, totals, transitionCaveats, type HeadComparison } from '@/lib/data/transition';
 import { compactIN, nf, signedPct } from '@/lib/format';
-import { deltaPct } from '@/lib/analytics';
+import { contributions, deltaPct } from '@/lib/analytics';
 
 export default function TransitionPage() {
   const { ipc2023, bns2024 } = totals;
   const allChange = deltaPct(ipc2023.all, bns2024.all);
+  const contrib = contributions(headComparisons.map((h) => ({ label: h.head, from: h.ipc2023, to: h.bns2024 })));
+  const biggest = contrib[0];
 
   const columns: Column<HeadComparison>[] = [
     {
@@ -89,7 +91,34 @@ export default function TransitionPage() {
         </div>
 
         <Card title="Head-by-head comparison" caption="Click a column to sort. 'Reclassified' flags heads that are not strictly comparable across the two years.">
-          <DataTable rows={headComparisons} columns={columns} initialSort="bns2024" />
+          <DataTable
+            rows={headComparisons}
+            columns={columns}
+            initialSort="bns2024"
+            exportName="ncrb-ipc-bns-transition"
+            csvRow={(r) => ({ offence_head: r.head, cases_2023_ipc: r.ipc2023, cases_2024_bns: r.bns2024, reclassified: r.reclassified ?? false })}
+          />
+        </Card>
+
+        <Card
+          title="What actually moved the total"
+          caption="Contribution analysis: each head's share of the total absolute change between the two years."
+        >
+          <HorizontalBars
+            items={contrib.map((c) => ({
+              label: `${c.label}  (${signedPct((c.delta / c.from) * 100)})`,
+              value: Math.abs(c.delta),
+              note: `${c.share.toFixed(0)}% of the movement`,
+            }))}
+            valueFormat={(v) => nf(v)}
+            color="var(--c2)"
+            highlightColor="var(--c2)"
+          />
+          <p className="card-cap" style={{ marginTop: 12 }}>
+            The single largest movement is <strong>{biggest?.label}</strong> at {signedPct((biggest?.delta ?? 0) / (biggest?.from || 1) * 100)} —
+            and it is the one flagged as reclassified, so most of the headline fall is definitional rather than a
+            change in offending.
+          </p>
         </Card>
 
         <Card title="Heads that only exist under the BNS" caption="No IPC equivalent — these cannot be compared with 2023.">

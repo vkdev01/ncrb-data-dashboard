@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { nav, site } from '@/config/site';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 /** Header — brand + primary navigation. Collapses to a menu on small screens. */
 export function Header() {
@@ -39,6 +40,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
+        <ThemeToggle />
       </div>
     </header>
   );

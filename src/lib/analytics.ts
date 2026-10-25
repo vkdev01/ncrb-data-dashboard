@@ -59,3 +59,34 @@ export function movingAverage(values: number[], window: number): (number | null)
 export function sumBy<T>(arr: T[], key: (item: T) => number): number {
   return arr.reduce((s, item) => s + key(item), 0);
 }
+
+/* ---------------------------------------------------------- contributions */
+
+export interface Contribution {
+  label: string;
+  from: number;
+  to: number;
+  /** absolute change (to - from) */
+  delta: number;
+  /** share of the total absolute change, in percent */
+  share: number;
+}
+
+/**
+ * Contribution analysis: given matched pairs, work out how much each one moved
+ * the total, and what share of the overall change it accounts for. Sorted by the
+ * size of the movement. Useful for answering "what drove the change?".
+ */
+export function contributions(pairs: { label: string; from: number; to: number }[]): Contribution[] {
+  const deltas = pairs.map((p) => p.to - p.from);
+  const totalAbs = deltas.reduce((s, d) => s + Math.abs(d), 0);
+  return pairs
+    .map((p, i) => ({
+      label: p.label,
+      from: p.from,
+      to: p.to,
+      delta: deltas[i],
+      share: totalAbs ? (deltas[i] / totalAbs) * 100 : 0,
+    }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+}

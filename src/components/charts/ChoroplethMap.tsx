@@ -21,6 +21,8 @@ interface Props {
   legendTitle?: string;
   /** Accessible label for the map. */
   ariaLabel?: string;
+  /** Called when a region is clicked (used for drill-down). */
+  onSelect?: (f: PathFeature) => void;
 }
 
 export function ChoroplethMap({
@@ -31,6 +33,7 @@ export function ChoroplethMap({
   format = (v) => Intl.NumberFormat('en-IN').format(Math.round(v)),
   legendTitle = 'Value',
   ariaLabel = 'choropleth map of India',
+  onSelect,
 }: Props) {
   const [hover, setHover] = useState<{ f: PathFeature; v?: number; x: number; y: number } | null>(null);
 
@@ -63,12 +66,15 @@ export function ChoroplethMap({
                 stroke={isHover ? 'var(--ink)' : 'rgba(15,23,42,0.18)'}
                 strokeWidth={isHover ? 1.4 : 0.4}
                 style={{ cursor: 'pointer', transition: 'stroke .1s' }}
+                onClick={() => onSelect?.(f)}
                 onMouseEnter={(e) =>
                   setHover({ f, v, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
                 }
                 onMouseMove={(e) => setHover((h) => (h ? { ...h, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY } : h))}
                 onMouseLeave={() => setHover(null)}
-              />
+              >
+                <title>{`${f.district ? f.district + ', ' : ''}${f.state}: ${typeof v === 'number' ? format(v) : 'no data'}`}</title>
+              </path>
             );
           })}
         </svg>

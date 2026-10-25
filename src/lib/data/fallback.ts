@@ -10,7 +10,7 @@
  * as published via indiandataproject.org's open-data endpoints.
  * Snapshot taken: 2026-10-25.
  */
-import type { Cybercrime, Overview, Summary, WomenSafety } from './types';
+import type { Cybercrime, Indicators, Justice, Overview, Police, Summary, WomenSafety } from './types';
 
 export const fallbackSummary: Summary = {
   year: '2025-26',
@@ -179,4 +179,119 @@ export const fallbackCybercrime: Cybercrime = {
     'I4C complaints are citizen-reported via portal. NCRB counts FIR-registered cases. The gap ' +
     '(22.68L complaints vs 86,420 cyber FIRs in 2023) reflects under-registration of cybercrime as FIRs.',
   source: 'NCRB Crime in India 2023 + I4C / cybercrime.gov.in',
+};
+
+/* ------------------------------------------------------------------ police */
+
+export const fallbackPolice: Police = {
+  year: '2025-26',
+  sanctionedStrength: 2722669,
+  actualStrength: 2141305,
+  vacancyPct: 21.35,
+  sanctionedRatePerLakh: 196.88,
+  actualRatePerLakh: 154.84,
+  unRecommended: 222,
+  womenPolicePct: 12.32,
+  womenPoliceTotal: 263762,
+  stateRatios: [
+    { id: 'NL', name: 'Nagaland', sanctioned: 1201.48, actual: 1135.94 },
+    { id: 'MN', name: 'Manipur', sanctioned: 1093.8, actual: 941.63 },
+    { id: 'SK', name: 'Sikkim', sanctioned: 999.56, actual: 834.4 },
+    { id: 'AR', name: 'Arunachal Pradesh', sanctioned: 983.79, actual: 766.75 },
+    { id: 'MZ', name: 'Mizoram', sanctioned: 916.63, actual: 595.21 },
+    { id: 'TR', name: 'Tripura', sanctioned: 719.04, actual: 555.57 },
+    { id: 'GA', name: 'Goa', sanctioned: 687.84, actual: 498.47 },
+    { id: 'ML', name: 'Meghalaya', sanctioned: 505.25, actual: 422.92 },
+    { id: 'DL', name: 'Delhi', sanctioned: 444.7, actual: 380.2 },
+    { id: 'PB', name: 'Punjab', sanctioned: 278.39, actual: 241.02 },
+    { id: 'HP', name: 'Himachal Pradesh', sanctioned: 257.71, actual: 240.4 },
+    { id: 'CG', name: 'Chhattisgarh', sanctioned: 266.79, actual: 214.74 },
+    { id: 'AS', name: 'Assam', sanctioned: 229.86, actual: 205.74 },
+    { id: 'HR', name: 'Haryana', sanctioned: 292.15, actual: 199.08 },
+    { id: 'UK', name: 'Uttarakhand', sanctioned: 193.45, actual: 183.96 },
+    { id: 'AP', name: 'Andhra Pradesh', sanctioned: 200.4, actual: 165.89 },
+    { id: 'TS', name: 'Telangana', sanctioned: 226.47, actual: 162.66 },
+    { id: 'TN', name: 'Tamil Nadu', sanctioned: 172.56, actual: 159.54 },
+    { id: 'JH', name: 'Jharkhand', sanctioned: 211.04, actual: 157.71 },
+    { id: 'KA', name: 'Karnataka', sanctioned: 165.04, actual: 150.95 },
+    { id: 'KL', name: 'Kerala', sanctioned: 172.73, actual: 150.68 },
+    { id: 'MH', name: 'Maharashtra', sanctioned: 184.92, actual: 136.83 },
+    { id: 'UP', name: 'Uttar Pradesh', sanctioned: 182.24, actual: 135.39 },
+    { id: 'GJ', name: 'Gujarat', sanctioned: 173.5, actual: 123.84 },
+    { id: 'MP', name: 'Madhya Pradesh', sanctioned: 145.54, actual: 121.13 },
+    { id: 'OD', name: 'Odisha', sanctioned: 150.99, actual: 120.58 },
+    { id: 'RJ', name: 'Rajasthan', sanctioned: 140.61, actual: 118.18 },
+    { id: 'WB', name: 'West Bengal', sanctioned: 166.93, actual: 101.13 },
+    { id: 'BR', name: 'Bihar', sanctioned: 114.57, actual: 81.49 },
+  ],
+  source: 'BPRD Data on Police Organisations (as on 01.01.2023)',
+};
+
+/* ----------------------------------------------------------------- justice */
+
+export const fallbackJustice: Justice = {
+  year: '2025-26',
+  funnel: {
+    totalForInvestigation: 5361518,
+    investigated: 3785839,
+    chargesheeted: 2753235,
+    chargesheetRate: 72.7,
+    totalForTrial: 17990929,
+    trialCompleted: 1678367,
+    convicted: 907028,
+    acquitted: 706718,
+    convictionRate: 54.0,
+    pendingInvestigation: 1565450,
+    pendingTrial: 15880050,
+    pendencyRate: 88.3,
+  },
+  trialDuration: { avgYears: 3.5, casesOver5Years: 28.6, casesOver10Years: 10.2, judgesPerMillion: 21.0 },
+  source: 'NCRB Crime in India 2023 — Disposal of IPC Cases by Police & Courts (Table 18A.1)',
+};
+
+/* -------------------------------------------------------------- indicators */
+
+const crimeRate = [
+  ['KL','Kerala',1631.2],['DL','Delhi',1602.0],['GJ','Gujarat',806.3],['HR','Haryana',739.2],
+  ['TN','Tamil Nadu',701.4],['MN','Manipur',627.8],['MP','Madhya Pradesh',570.3],['TS','Telangana',481.6],
+  ['MH','Maharashtra',470.4],['OD','Odisha',431.2],['RJ','Rajasthan',390.4],['CG','Chhattisgarh',381.2],
+  ['AP','Andhra Pradesh',346.3],['UP','Uttar Pradesh',335.3],['MZ','Mizoram',326.3],['KA','Karnataka',315.8],
+  ['UK','Uttarakhand',291.3],['BR','Bihar',277.5],['HP','Himachal Pradesh',267.2],['PB','Punjab',227.1],
+  ['JK','Jammu & Kashmir',217.0],['GA','Goa',195.4],['AR','Arunachal Pradesh',187.9],['WB','West Bengal',181.6],
+  ['AS','Assam',181.3],['JH','Jharkhand',161.1],['TR','Tripura',120.4],['ML','Meghalaya',105.2],
+  ['SK','Sikkim',103.9],['NL','Nagaland',84.9],
+] as const;
+
+const womenCrimeRate = [
+  ['DL','Delhi',133.6],['TS','Telangana',124.9],['RJ','Rajasthan',114.8],['OD','Odisha',112.4],
+  ['HR','Haryana',110.3],['KL','Kerala',86.1],['AP','Andhra Pradesh',84.2],['MH','Maharashtra',77.5],
+  ['MP','Madhya Pradesh',76.8],['WB','West Bengal',71.3],['AS','Assam',68.6],['UK','Uttarakhand',66.9],
+  ['KA','Karnataka',60.9],['UP','Uttar Pradesh',58.6],['CG','Chhattisgarh',53.2],['HP','Himachal Pradesh',43.5],
+  ['AR','Arunachal Pradesh',42.8],['SK','Sikkim',41.0],['TR','Tripura',38.7],['BR','Bihar',37.5],
+  ['ML','Meghalaya',37.5],['GA','Goa',36.5],['JH','Jharkhand',36.1],['PB','Punjab',35.9],
+  ['MZ','Mizoram',29.9],['TN','Tamil Nadu',23.2],['GJ','Gujarat',22.9],['MN','Manipur',12.5],
+  ['NL','Nagaland',5.2],
+] as const;
+
+const roadFatalityRate = [
+  ['TN','Tamil Nadu',23.8],['CG','Chhattisgarh',20.4],['TS','Telangana',20.1],['GA','Goa',18.4],
+  ['KA','Karnataka',18.2],['HR','Haryana',16.4],['MP','Madhya Pradesh',15.9],['PB','Punjab',15.7],
+  ['AP','Andhra Pradesh',15.3],['RJ','Rajasthan',14.5],['OD','Odisha',12.4],['MH','Maharashtra',12.1],
+  ['HP','Himachal Pradesh',11.9],['KL','Kerala',11.4],['GJ','Gujarat',10.9],['JH','Jharkhand',10.5],
+  ['UP','Uttar Pradesh',10.0],['AR','Arunachal Pradesh',9.2],['AS','Assam',9.2],['UK','Uttarakhand',9.0],
+  ['SK','Sikkim',8.3],['MZ','Mizoram',7.7],['BR','Bihar',7.0],['DL','Delhi',6.8],
+  ['TR','Tripura',6.3],['WB','West Bengal',6.1],['ML','Meghalaya',5.0],['NL','Nagaland',3.8],
+  ['MN','Manipur',2.3],
+] as const;
+
+const toStates = (rows: readonly (readonly [string, string, number])[]) =>
+  rows.map(([id, name, value]) => ({ id, name, value }));
+
+export const fallbackIndicators: Indicators = {
+  year: '2025-26',
+  indicators: [
+    { id: 'crime_rate', name: 'Crime rate (per lakh population)', category: 'overall', unit: 'per lakh', states: toStates(crimeRate), source: 'NCRB Crime in India 2023' },
+    { id: 'women_crime_rate', name: 'Crimes against women (per lakh women)', category: 'women-safety', unit: 'per lakh', states: toStates(womenCrimeRate), source: 'NCRB Crime in India 2023' },
+    { id: 'road_fatality_rate', name: 'Road accident fatality rate (per lakh)', category: 'road-safety', unit: 'per lakh', states: toStates(roadFatalityRate), source: 'MoRTH Road Accidents in India 2023' },
+  ],
 };

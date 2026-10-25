@@ -73,12 +73,70 @@ export interface Cybercrime {
   source: string;
 }
 
+/** Police strength (BPRD), including per-state sanctioned vs actual ratios. */
+export interface Police {
+  year: string;
+  sanctionedStrength: number;
+  actualStrength: number;
+  vacancyPct: number;
+  sanctionedRatePerLakh: number;
+  actualRatePerLakh: number;
+  unRecommended: number;
+  womenPolicePct: number;
+  womenPoliceTotal: number;
+  stateRatios: { id: string; name: string; sanctioned: number; actual: number }[];
+  source: string;
+}
+
+/** The justice pipeline: FIR → investigation → charge-sheet → trial → outcome. */
+export interface Justice {
+  year: string;
+  funnel: {
+    totalForInvestigation: number;
+    investigated: number;
+    chargesheeted: number;
+    chargesheetRate: number;
+    totalForTrial: number;
+    trialCompleted: number;
+    convicted: number;
+    acquitted: number;
+    convictionRate: number;
+    pendingInvestigation: number;
+    pendingTrial: number;
+    pendencyRate: number;
+  };
+  trialDuration: {
+    avgYears: number;
+    casesOver5Years: number;
+    casesOver10Years: number;
+    judgesPerMillion: number;
+  };
+  source: string;
+}
+
+/** A named indicator with a per-state value. */
+export interface Indicator {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  states: { id: string; name: string; value: number }[];
+  source: string;
+}
+export interface Indicators {
+  year: string;
+  indicators: Indicator[];
+}
+
 /** Every dataset the app can render, keyed by a stable id. */
 export interface DatasetMap {
   summary: Summary;
   overview: Overview;
   womenSafety: WomenSafety;
   cybercrime: Cybercrime;
+  police: Police;
+  justice: Justice;
+  indicators: Indicators;
 }
 
 export type DatasetId = keyof DatasetMap;

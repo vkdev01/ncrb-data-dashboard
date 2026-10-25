@@ -119,7 +119,13 @@ export default function StatesPage() {
             />
           }
         >
-          <DataTable rows={rows} columns={columns} initialSort="rate" />
+          <DataTable
+            rows={rows}
+            columns={columns}
+            initialSort="rate"
+            exportName="ncrb-states"
+            csvRow={(r) => ({ state: r.name, rate_per_100k: r.rate, cases: r.total ?? null, vs_national_avg: +(r.rate - avg).toFixed(1) })}
+          />
         </Card>
 
         <div className="callout warn">

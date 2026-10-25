@@ -11,7 +11,10 @@
  */
 import {
   fallbackCybercrime,
+  fallbackIndicators,
+  fallbackJustice,
   fallbackOverview,
+  fallbackPolice,
   fallbackSummary,
   fallbackWomenSafety,
 } from './fallback';
@@ -59,6 +62,27 @@ export const SOURCES: { [K in DatasetId]: SourceDef<K> } = {
     liveUrl: `${LIVE_BASE}/cybercrime.json`,
     fallback: fallbackCybercrime,
     origin: 'NCRB Crime in India 2023 + I4C',
+  },
+  police: {
+    id: 'police',
+    label: 'Police strength',
+    liveUrl: `${LIVE_BASE}/police.json`,
+    fallback: fallbackPolice,
+    origin: 'BPRD Data on Police Organisations',
+  },
+  justice: {
+    id: 'justice',
+    label: 'Justice pipeline',
+    liveUrl: `${LIVE_BASE}/justice.json`,
+    fallback: fallbackJustice,
+    origin: 'NCRB Crime in India 2023 — disposal of IPC cases',
+  },
+  indicators: {
+    id: 'indicators',
+    label: 'State indicators',
+    liveUrl: `${LIVE_BASE}/indicators.json`,
+    fallback: fallbackIndicators,
+    origin: 'NCRB + MoRTH + BPRD, via Indian Data Project',
   },
 };
 

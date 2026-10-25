@@ -63,9 +63,9 @@ export function ChoroplethMap({
                 key={i}
                 d={f.d}
                 fill={typeof v === 'number' ? scale(v) : NO_DATA}
-                stroke={isHover ? 'var(--ink)' : 'rgba(15,23,42,0.18)'}
-                strokeWidth={isHover ? 1.4 : 0.4}
-                style={{ cursor: 'pointer', transition: 'stroke .1s' }}
+                stroke={isHover ? 'var(--ink)' : 'rgba(15,23,42,0.16)'}
+                strokeWidth={isHover ? 1.6 : 0.4}
+                style={{ cursor: 'pointer', transition: 'fill .45s ease, stroke .12s ease, filter .12s ease', filter: isHover ? 'brightness(0.94)' : 'none' }}
                 onClick={() => onSelect?.(f)}
                 onMouseEnter={(e) =>
                   setHover({ f, v, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })

@@ -270,6 +270,31 @@ main { padding: 30px 0 60px; }
 .gloss-item dt { font-weight: 700; color: var(--ink); font-size: 0.94rem; }
 .gloss-item dd { margin: 6px 0 0; font-size: 0.86rem; color: var(--text); }
 
+/* ---------- map controls, timeline, ranking ---------- */
+.map-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 16px; }
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 0.76rem; color: var(--text-dim); font-weight: 600; }
+.field select { font: inherit; font-size: 0.86rem; font-weight: 500; color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 12px; min-width: 280px; max-width: 100%; }
+.field select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.timeline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.play { width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font-size: 0.8rem; cursor: pointer; line-height: 1; }
+.play:hover { border-color: var(--accent); background: var(--accent-soft); }
+.timeline input[type='range'] { width: 190px; accent-color: var(--accent); }
+.year-ticks { display: flex; gap: 4px; }
+.year-ticks button { font: inherit; font-size: 0.72rem; font-family: var(--font-mono); padding: 3px 7px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer; }
+.year-ticks button.on { background: var(--accent); color: #fff; font-weight: 700; }
+.year-ticks button:hover:not(.on) { background: var(--surface-2); }
+
+.map-layout { display: grid; grid-template-columns: 1fr 240px; gap: 20px; align-items: start; }
+.map-main { min-width: 0; }
+.map-side { display: flex; flex-direction: column; gap: 16px; }
+.rank-list h4 { margin: 0 0 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.rank-row { display: flex; justify-content: space-between; gap: 8px; width: 100%; font: inherit; font-size: 0.82rem; padding: 6px 8px; border-radius: 7px; border: none; background: transparent; color: var(--text); cursor: pointer; text-align: left; }
+.rank-row:hover { background: var(--surface-2); }
+.rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-val { font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) { .map-layout { grid-template-columns: 1fr; } .map-side { flex-direction: row; } .map-side > * { flex: 1; } }
+
 /* ---------- footer ---------- */
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 34px 0 40px; background: var(--surface); }
 .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 34px; }

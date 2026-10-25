@@ -32,9 +32,52 @@ const DATASETS = [
  * district tables. Kept separate from the JSON feeds above because it is a
  * different provider and shape.
  */
+const DISTRICT_FIELDS = {
+  murder: 'totmdr24',
+  womenChild: 'totoff24',
+  rape: 'rape24',
+  attemptRape: 'atcmrape24',
+  assaultWomen: 'asltcfmod24',
+  sexualHarassment: 'totsexhr24',
+  stalking: 'stk78_24',
+  insultModesty: 'inmodwom24',
+  voyeurism: 'voyeur24',
+  crueltyHusband: 'crlhus24',
+  dowryDeath: 'dwydth24',
+  kidnapWomenMarriage: 'kidabdmrg24',
+  culpableHomicide: 'culhommdr24',
+  deathByNegligence: 'cadthneg24',
+  abetmentSuicide: 'abtsui24',
+};
+
 const DISTRICT_URL =
   'https://livingatlas.esri.in/server1/rest/services/NCRB/District_Wise_IPC_Crimes_2022/MapServer/0/query' +
-  '?where=1%3D1&outFields=dist,state,totmdr24,totoff24&returnGeometry=false&f=json&resultRecordCount=2000';
+  '?where=1%3D1&outFields=' +
+  ['dist', 'state', ...Object.values(DISTRICT_FIELDS)].join(',') +
+  '&returnGeometry=false&f=json&resultRecordCount=3000';
+
+/**
+ * State-level multi-year service — this is what makes a timeline possible.
+ * Violent-crime counts run 2020–2024; rate and charge-sheeting rate 2022–2024.
+ */
+const STATE_TS_URL =
+  'https://livingatlas.esri.in/server1/rest/services/NCRB/IN_ST_ViolentCrimes_2018_20/MapServer/0/query' +
+  '?where=1%3D1&outFields=' +
+  [
+    'state',
+    'violentcrime_2020',
+    'violentcrime_2021',
+    'violentcrime_2022',
+    'violentcrime_2023',
+    'violentcrime_2024',
+    'rateviolentcrimes_2022',
+    'rateviolentcrimes_2023',
+    'rateviolentcrimes_2024',
+    'chargesheetingrate_2022',
+    'chargesheetingrate_2023',
+    'chargesheetingrate_2024',
+  ].join(',') +
+  '&returnGeometry=false&f=json&resultRecordCount=100';
 
 async function fetchJson(url) {
   const res = await fetch(url, { headers: { accept: 'application/json' } });
@@ -76,14 +119,16 @@ async function main() {
   // district layer (best-effort — a different provider)
   try {
     const raw = await fetchJson(DISTRICT_URL);
-    const rows = (raw.features ?? []).map((f) => ({
-      d: f.attributes?.dist,
-      s: f.attributes?.state,
-      murder: f.attributes?.totmdr24,
-      womenChild: f.attributes?.totoff24,
-    })).filter((r) => r.d && r.s);
+    const rows = (raw.features ?? [])
+      .map((f) => {
+        const a = f.attributes ?? {};
+        const row = { d: a.dist, s: a.state };
+        for (const [key, field] of Object.entries(DISTRICT_FIELDS)) row[key] = a[field] ?? null;
+        return row;
+      })
+      .filter((r) => r.d && r.s);
     await writeFile(resolve(OUT, 'districts.json'), JSON.stringify(rows) + '\n', 'utf8');
-    console.log(`✓ ${'districts'.padEnd(12)} ${rows.length} districts (NCRB 2024, via Esri Living Atlas)`);
+    console.log(`✓ ${'districts'.padEnd(12)} ${rows.length} districts × ${Object.keys(DISTRICT_FIELDS).length} metrics`);
 
     // Report how well the district names match the boundary file, so the
     // coverage figure shown on the map can be checked.
@@ -164,6 +209,41 @@ async function main() {
   } catch (err) {
     failures += 1;
     console.warn(`✗ ${'districts'.padEnd(12)} ${err.message}`);
+  }
+
+  // state-level multi-year series — powers the map timeline
+  try {
+    const raw = await fetchJson(STATE_TS_URL);
+    const rows = (raw.features ?? [])
+      .map((f) => {
+        const a = f.attributes ?? {};
+        return {
+          state: a.state,
+          violentCrimes: {
+            2020: a.violentcrime_2020 ?? null,
+            2021: a.violentcrime_2021 ?? null,
+            2022: a.violentcrime_2022 ?? null,
+            2023: a.violentcrime_2023 ?? null,
+            2024: a.violentcrime_2024 ?? null,
+          },
+          rate: {
+            2022: a.rateviolentcrimes_2022 ?? null,
+            2023: a.rateviolentcrimes_2023 ?? null,
+            2024: a.rateviolentcrimes_2024 ?? null,
+          },
+          chargesheetRate: {
+            2022: a.chargesheetingrate_2022 ?? null,
+            2023: a.chargesheetingrate_2023 ?? null,
+            2024: a.chargesheetingrate_2024 ?? null,
+          },
+        };
+      })
+      .filter((r) => r.state);
+    await writeFile(resolve(OUT, 'states-timeseries.json'), JSON.stringify(rows) + '\n', 'utf8');
+    console.log(`✓ ${'timeseries'.padEnd(12)} ${rows.length} states × 2020–2024 (violent crimes)`);
+  } catch (err) {
+    failures += 1;
+    console.warn(`✗ ${'timeseries'.padEnd(12)} ${err.message}`);
   }
 
   console.log(

@@ -11,9 +11,11 @@ export function last<T>(arr: T[]): T | undefined {
   return arr.length ? arr[arr.length - 1] : undefined;
 }
 
-/** Compound annual growth rate, in percent, between two values over N periods. */
+/** Compound annual growth rate, in percent, between two values over N periods.
+ *  Returns 0 as a sentinel when either endpoint is non-positive — a rate to or
+ *  from zero is degenerate and not meaningful to report. */
 export function cagr(firstValue: number, lastValue: number, periods: number): number {
-  if (firstValue <= 0 || periods <= 0) return 0;
+  if (firstValue <= 0 || lastValue <= 0 || periods <= 0) return 0;
   return (Math.pow(lastValue / firstValue, 1 / periods) - 1) * 100;
 }
 

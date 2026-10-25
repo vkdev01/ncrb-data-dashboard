@@ -49,6 +49,11 @@ export function project(geo: GeoCollection, width = 620): ProjectedGeo {
   const rings: { ring: number[][]; props: GeoFeature['properties'] }[] = [];
 
   for (const f of geo.features) {
+    // The source file ends with ~34 state-level overlay polygons that carry no
+    // district name. They duplicate the state outline and — because SVG paints
+    // in order — would be drawn on top of every district, hiding the data. Skip
+    // them so the district layer is what you see.
+    if (!f.properties.d) continue;
     const polys =
       f.geometry.type === 'Polygon'
         ? [f.geometry.coordinates as number[][][]]

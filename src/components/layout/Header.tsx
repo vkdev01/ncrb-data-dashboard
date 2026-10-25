@@ -3,43 +3,48 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { nav, site } from '@/config/site';
+import { domainEntry, domainOf, domains, site } from '@/config/site';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
-/** Header — brand + primary navigation. Collapses to a menu on small screens. */
+/** Header — brand + the top-level domains. Sub-pages live in the tab strip. */
 export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const current = domainOf(pathname);
 
   return (
     <header className="site-header">
       <div className="wrap header-inner">
-        <Link href="/" className="brand" onClick={() => setOpen(false)}>
+        <Link href="/" className="brand">
           <span className="brand-mark" aria-hidden />
           <span className="brand-text">
-            <strong>{site.shortName}</strong>
-            <small>Data Dashboard</small>
+            <span className="brand-name">{site.name}</span>
+            <span className="brand-sub">{site.tagline}</span>
           </span>
         </Link>
 
-        <button className="nav-toggle" aria-expanded={open} aria-label="Toggle navigation" onClick={() => setOpen((v) => !v)}>
+        <button
+          className="nav-toggle"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-label="Toggle navigation"
+        >
           ☰
         </button>
 
         <nav className={`site-nav${open ? ' open' : ''}`}>
-          {nav.map((item) => (
+          {domains.map((d) => (
             <Link
-              key={item.href}
-              href={item.href}
-              className={isActive(item.href) ? 'active' : undefined}
+              key={d.id}
+              href={domainEntry(d.id)}
+              className={`nav-link${current === d.id ? ' active' : ''}`}
               onClick={() => setOpen(false)}
             >
-              {item.label}
+              {d.label}
             </Link>
           ))}
         </nav>
+
         <ThemeToggle />
       </div>
     </header>

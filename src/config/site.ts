@@ -1,59 +1,88 @@
-/** Site-wide configuration: identity, navigation and source attribution. */
+/** Site-wide configuration: identity, domains, navigation and attribution. */
 
 export const site = {
-  name: 'NCRB Data Dashboard',
-  shortName: 'NCRB',
-  tagline: "India's crime statistics — categorised, visualised and analysed",
+  name: 'India in Data',
+  shortName: 'India',
+  tagline: 'Crime, climate, air, economy and society — one explorer',
   description:
-    'An interactive dashboard for National Crime Records Bureau (NCRB) statistics: national trends, ' +
-    'crime heads, state-wise rates, crimes against women and cybercrime.',
+    'An open, interactive explorer of India: NCRB crime statistics, a warming climate, live air quality, ' +
+    'sixty years of economic progress and how India compares on women’s safety.',
   repo: 'https://github.com/vkdev01/ncrb-data-dashboard',
 };
+
+export interface Domain {
+  id: string;
+  label: string;
+}
 
 export interface NavItem {
   href: string;
   label: string;
-  /** Short blurb used on the home page card grid. */
-  blurb?: string;
+  blurb: string;
+  domain: string;
 }
 
-export const nav: NavItem[] = [
-  { href: '/', label: 'Overview', blurb: 'National headline numbers and the ten-year trend.' },
-  { href: '/map', label: 'Map', blurb: 'Choropleth of India by state and district.' },
-  { href: '/trends', label: 'Trends', blurb: 'Year-wise totals, IPC vs SLL and crime rate.' },
-  { href: '/crime-heads', label: 'Crime heads', blurb: 'How the IPC total breaks down by offence.' },
-  { href: '/states', label: 'States', blurb: 'State and UT comparison by crime rate.' },
-  { href: '/women', label: 'Women', blurb: 'Crimes against women: trend, types and states.' },
-  { href: '/cyber', label: 'Cybercrime', blurb: 'Cyber offences, types and the I4C reporting gap.' },
-  { href: '/justice', label: 'Justice', blurb: 'Police strength and the FIR-to-conviction pipeline.' },
-  { href: '/transition', label: 'IPC→BNS', blurb: 'The 2024 criminal-law transition, head by head.' },
-  { href: '/glossary', label: 'Glossary', blurb: 'What the crime heads and terms actually mean.' },
-  { href: '/about', label: 'About', blurb: 'Methodology, sources and limitations.' },
+/** Top-level domains, in the order they appear in the header. */
+export const domains: Domain[] = [
+  { id: 'crime', label: 'Crime' },
+  { id: 'climate', label: 'Climate' },
+  { id: 'air', label: 'Air' },
+  { id: 'economy', label: 'Economy' },
+  { id: 'society', label: 'Society' },
+  { id: 'about', label: 'About' },
 ];
 
-/**
- * Upstream sources the dashboard draws on. Shown on the About page and in
- * footers so every figure can be traced.
- */
+export const nav: NavItem[] = [
+  // ---- crime (NCRB) ----
+  { href: '/', label: 'Overview', blurb: 'National headline numbers and the ten-year trend.', domain: 'crime' },
+  { href: '/map', label: 'Map', blurb: 'Choropleth of India by state and district.', domain: 'crime' },
+  { href: '/trends', label: 'Trends', blurb: 'Year-wise totals, IPC vs SLL and crime rate.', domain: 'crime' },
+  { href: '/crime-heads', label: 'Crime heads', blurb: 'How recorded offences split across heads.', domain: 'crime' },
+  { href: '/states', label: 'States', blurb: 'State and UT comparison by crime rate.', domain: 'crime' },
+  { href: '/women', label: 'Women', blurb: 'Crimes against women: trend, types and states.', domain: 'crime' },
+  { href: '/cyber', label: 'Cybercrime', blurb: 'Cyber offences and the I4C reporting gap.', domain: 'crime' },
+  { href: '/justice', label: 'Justice', blurb: 'Police strength and the FIR-to-conviction pipeline.', domain: 'crime' },
+  { href: '/transition', label: 'IPC→BNS', blurb: 'The 2024 criminal-law transition, head by head.', domain: 'crime' },
+
+  // ---- climate ----
+  { href: '/climate', label: 'Warming', blurb: 'How much hotter each Indian city has become since 1950.', domain: 'climate' },
+
+  // ---- air ----
+  { href: '/air', label: 'Air quality', blurb: 'Live PM2.5 and AQI across major cities.', domain: 'air' },
+
+  // ---- economy ----
+  { href: '/economy', label: 'Economy', blurb: 'Sixty years of World Bank indicators for India.', domain: 'economy' },
+
+  // ---- society ----
+  { href: '/safety', label: "Women's safety", blurb: "A 50-country comparison, with its caveats.", domain: 'society' },
+
+  // ---- about ----
+  { href: '/glossary', label: 'Glossary', blurb: 'What the terms actually mean.', domain: 'about' },
+  { href: '/about', label: 'Methodology', blurb: 'Sources, methods and limitations.', domain: 'about' },
+];
+
+/** Items belonging to a domain, in nav order. */
+export function navForDomain(domain: string): NavItem[] {
+  return nav.filter((n) => n.domain === domain);
+}
+
+/** Which domain a pathname belongs to (longest matching href wins). */
+export function domainOf(pathname: string): string {
+  const matches = nav
+    .filter((n) => (n.href === '/' ? pathname === '/' : pathname.startsWith(n.href)))
+    .sort((a, b) => b.href.length - a.href.length);
+  return matches[0]?.domain ?? 'crime';
+}
+
+/** First page of a domain — where the header link points. */
+export function domainEntry(domain: string): string {
+  return navForDomain(domain)[0]?.href ?? '/';
+}
+
 export const sources = [
-  {
-    name: 'National Crime Records Bureau (NCRB)',
-    detail: 'Crime in India reports — the primary publisher of these statistics.',
-    url: 'https://www.ncrb.gov.in/',
-  },
-  {
-    name: 'Open Government Data (data.gov.in)',
-    detail: 'Official "Crime in India" catalogues, distributed as ZIP downloads.',
-    url: 'https://www.data.gov.in/catalog/crime-india-2023',
-  },
-  {
-    name: 'Indian Data Project — open data',
-    detail: 'NCRB-derived JSON endpoints (CORS-enabled, no key) used as the live feed.',
-    url: 'https://indiandataproject.org/open-data',
-  },
-  {
-    name: 'OpenCity (CKAN)',
-    detail: 'Public-domain mirror of NCRB tables, including CSV resources.',
-    url: 'https://data.opencity.in/',
-  },
+  { name: 'NCRB — Crime in India', url: 'https://www.ncrb.gov.in/', note: 'Primary publisher of crime statistics.' },
+  { name: 'Open-Meteo', url: 'https://open-meteo.com/', note: 'Historical climate archive and live air quality, CC BY 4.0.' },
+  { name: 'World Bank Open Data', url: 'https://data.worldbank.org/', note: 'Economic and development indicators.' },
+  { name: 'Indian Data Project', url: 'https://indiandataproject.org/open-data', note: 'NCRB-derived JSON feeds.' },
+  { name: 'Esri India Living Atlas', url: 'https://livingatlas.esri.in/server1/rest/services/NCRB', note: 'NCRB district tables as feature services.' },
 ];

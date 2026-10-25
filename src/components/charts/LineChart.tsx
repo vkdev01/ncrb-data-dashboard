@@ -26,6 +26,8 @@ interface Props {
   yFormat?: (v: number) => string;
   valueFormat?: (v: number) => string;
   yTicks?: number;
+  /** Format an x tick label (defaults to the raw value). */
+  xLabel?: (x: string) => string;
 }
 
 const PAD = { top: 16, right: 18, bottom: 30, left: 54 };
@@ -37,6 +39,7 @@ export function LineChart({
   yFormat = (v) => Intl.NumberFormat('en-IN').format(Math.round(v)),
   valueFormat,
   yTicks = 4,
+  xLabel,
 }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const vf = valueFormat ?? yFormat;
@@ -92,7 +95,7 @@ export function LineChart({
         {/* x labels */}
         {tickIdx.map((i) => (
           <text key={i} className="axis" x={xAt(i)} y={height - 10} textAnchor="middle">
-            {xs[i]}
+            {xLabel ? xLabel(xs[i]) : xs[i]}
           </text>
         ))}
 

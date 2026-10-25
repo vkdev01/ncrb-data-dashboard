@@ -63,7 +63,7 @@ export default function AboutPage() {
                 <a href={s.url} target="_blank" rel="noreferrer">
                   {s.name}
                 </a>
-                <span>{s.detail}</span>
+                <span>{s.note}</span>
               </li>
             ))}
           </ul>

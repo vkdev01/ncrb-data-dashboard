@@ -7,6 +7,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { LineChart } from '@/components/charts/LineChart';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { WB_INDICATORS, fetchIndiaIndicator, type WbPoint } from '@/lib/data/worldbank';
+import { usePublishPageData } from '@/components/insights/PageDataContext';
+import type { PageContext } from '@/lib/insights/engine';
 
 interface Row {
   year: number;
@@ -33,6 +35,41 @@ export default function EconomyPage() {
   }, [indicatorId]);
 
   const ind = WB_INDICATORS.find((i) => i.id === indicatorId)!;
+
+  // Publish the selected indicator, so the panel answers about the series the
+  // reader is actually looking at rather than the default one.
+  const pageData = useMemo<PageContext | null>(() => {
+    if (!points || points.length < 2) return null;
+    const first = points[0];
+    const last = points[points.length - 1];
+    return {
+      route: '/economy',
+      title: `India — ${ind.label}`,
+      blurb:
+        `World Bank series for India: ${ind.label} (${ind.unit}), ${first.year} to ${last.year}. ` +
+        `Latest value ${ind.fmt(last.value)}.`,
+      series: [
+        {
+          id: 'wb',
+          label: ind.label,
+          short: ind.label,
+          unit: ind.unit,
+          format: ind.fmt,
+          higherIsBetter: null,
+          note: 'Annual World Bank figure for India. Years with no value are omitted, so gaps are missing data rather than zero.',
+          points: points.map((p) => ({ name: String(p.year), value: p.value })),
+        },
+      ],
+      caveats: [
+        'World Bank data lags one to two years; the latest year is often provisional and gets revised.',
+        'A single indicator says little on its own — level and rate of change are different questions.',
+      ],
+      source: 'World Bank Open Data',
+      prompts: ['Which year had the highest value?', 'Which year was lowest?', 'Summarise this page'],
+    };
+  }, [points, ind]);
+
+  usePublishPageData(pageData);
 
   const stats = useMemo(() => {
     if (!points || points.length < 2) return null;

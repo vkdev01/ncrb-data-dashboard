@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { HorizontalBars } from '@/components/charts/HorizontalBars';
 import { fetchAir, pm25Band, type AirMetric, type AirRow } from '@/lib/data/air';
+import { usePublishPageData } from '@/components/insights/PageDataContext';
+import type { PageContext } from '@/lib/insights/engine';
 
 const METRICS: { id: AirMetric; label: string; unit: string }[] = [
   { id: 'pm25', label: 'PM2.5', unit: 'µg/m³' },
@@ -38,6 +40,38 @@ export default function AirPage() {
   const worst = sorted[0];
   const best = sorted[sorted.length - 1];
   const active = METRICS.find((m) => m.id === metric)!;
+
+  // Publish the live reading on screen, so the panel answers about today's
+  // numbers for these cities rather than a generic context.
+  const pageData = useMemo<PageContext | null>(() => {
+    if (!rows || !sorted.length) return null;
+    return {
+      route: '/air',
+      title: `Air quality — ${active.label}`,
+      blurb: `Live ${active.label} (${active.unit}) for ${sorted.length} cities, fetched when this page loaded. Lower is better.`,
+      series: [
+        {
+          id: 'air',
+          label: `${active.label} by city, live`,
+          short: active.label,
+          unit: active.unit,
+          format: (v) => v.toFixed(1),
+          higherIsBetter: false,
+          note: 'A single grid point per city, refreshed on page load. Bands follow the US EPA scale.',
+          points: sorted.map((r) => ({ name: r.name, value: r[metric] as number })),
+        },
+      ],
+      caveats: [
+        'Live readings from Open-Meteo, one grid point per city — not a monitoring station average.',
+        'PM2.5 bands follow the US EPA scale; India\u2019s CPCB scale sets a lower threshold for “poor”.',
+        'A single reading is a snapshot, not an annual average; day-to-day variation is large.',
+      ],
+      source: 'Open-Meteo air quality API',
+      prompts: ['Which city has the worst air?', 'Which city is cleanest?', 'Summarise this page'],
+    };
+  }, [rows, sorted, metric, active.label, active.unit]);
+
+  usePublishPageData(pageData);
 
   return (
     <>

@@ -7,6 +7,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { LineChart } from '@/components/charts/LineChart';
 import { Stripes } from '@/components/charts/Stripes';
 import { CITIES, baseline, fetchCityClimate, slopePerDecade, type YearMean } from '@/lib/data/climate';
+import { usePublishPageData } from '@/components/insights/PageDataContext';
+import type { PageContext } from '@/lib/insights/engine';
 
 export default function ClimatePage() {
   const [city, setCity] = useState(CITIES[0].name);
@@ -37,6 +39,53 @@ export default function ClimatePage() {
     const anomalies = series.map((d) => ({ year: d.year, anomaly: base != null ? d.mean - base : 0 }));
     return { base, latest, change, slope, anomalies };
   }, [series]);
+
+  // Publish what this page is showing, so "Ask this page" answers about THIS
+  // city's record rather than a generic India context.
+  const pageData = useMemo<PageContext | null>(() => {
+    if (!series || !stats) return null;
+    const first = series[0];
+    const last = series[series.length - 1];
+    return {
+      route: '/climate',
+      title: `${city} — annual temperature`,
+      blurb:
+        `Yearly mean temperature for ${city}, ${first.year}–${last.year}, from the ERA5 reanalysis. ` +
+        (stats.base != null ? `The 1951–80 baseline is ${stats.base.toFixed(2)}°C; the latest year is ${last.mean.toFixed(2)}°C. ` : '') +
+        (stats.slope != null ? `Trend: ${stats.slope >= 0 ? '+' : ''}${stats.slope.toFixed(2)}°C per decade.` : ''),
+      series: [
+        {
+          id: 'temp',
+          label: `Annual mean temperature, ${city}`,
+          short: 'Temperature',
+          unit: '°C',
+          format: (v) => `${v.toFixed(2)}°C`,
+          higherIsBetter: null,
+          note: 'One value per calendar year, averaged from daily means at a single grid point.',
+          points: series.map((d) => ({ name: String(d.year), value: d.mean })),
+        },
+        {
+          id: 'anomaly',
+          label: 'Anomaly against the 1951–80 baseline',
+          short: 'Anomaly',
+          unit: '°C',
+          format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}°C`,
+          higherIsBetter: false,
+          note: 'Positive means warmer than the 1951–1980 average.',
+          points: stats.anomalies.map((a) => ({ name: String(a.year), value: a.anomaly })),
+        },
+      ],
+      caveats: [
+        'ERA5 is a reanalysis — a model constrained by observations — not a single weather station record.',
+        'Each city is one grid point; large cities vary internally by more than the annual trend.',
+        'Recent months are provisional as the archive lags by a few days.',
+      ],
+      source: 'Open-Meteo historical archive (ERA5)',
+      prompts: ['Which year was the hottest?', 'Which year was the coolest?', 'Summarise this page'],
+    };
+  }, [series, stats, city]);
+
+  usePublishPageData(pageData);
 
   return (
     <>

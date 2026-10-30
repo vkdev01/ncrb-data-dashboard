@@ -10,7 +10,8 @@ import { censusStates, india } from '@/lib/data/census';
 import { censusCities, cityGrowth } from '@/lib/data/cities';
 import { ageGroups, ageTotal } from '@/lib/data/age';
 import { METRICS } from '@/lib/census';
-import { fallbackOverview } from '@/lib/data/fallback';
+import { fallbackCybercrime, fallbackOverview, fallbackWomenSafety } from '@/lib/data/fallback';
+import { SAFETY_ROWS } from '@/lib/data/safety';
 import { nf, pct } from '@/lib/format';
 import type { PageContext, Series } from './engine';
 
@@ -196,6 +197,129 @@ const CONTEXTS: PageContext[] = [
     prompts: ['Which state has the highest crime rate?', 'Is crime related to urbanisation?', 'Compare Kerala and Bihar on crime rate'],
   },
   {
+    route: '/states',
+    title: 'States and union territories',
+    blurb: 'Crime rate per 100,000 population by state — the fairer basis for comparison than raw case counts.',
+    series: crimeSeries(),
+    caveats: CRIME_CAVEATS,
+    source: 'NCRB Crime in India',
+    prompts: ['Which state has the highest crime rate?', 'Which state has the lowest?', 'Summarise this page'],
+  },
+  {
+    route: '/map',
+    title: 'Map of India',
+    blurb: 'State and district crime figures as a choropleth, with a violent-crime timeline.',
+    series: crimeSeries(),
+    caveats: [...CRIME_CAVEATS, 'Shading is by rank, not absolute value.'],
+    source: 'NCRB Crime in India',
+    prompts: ['Which state has the highest crime rate?', 'Which state has the lowest?', 'Summarise this page'],
+  },
+  {
+    route: '/trends',
+    title: 'Crime trends',
+    blurb: 'Year-wise totals, IPC against special and local laws, and the population-normalised crime rate.',
+    series: [
+      {
+        id: 'crimeTotal',
+        label: 'Total cognizable crimes recorded',
+        short: 'Total crimes',
+        unit: 'cases',
+        format: nf,
+        higherIsBetter: false,
+        note: 'Registered cases, not offences. The 2020 spike reflects pandemic-period reporting changes as much as any change in crime.',
+        points: fallbackOverview.nationalTrend.map((t) => ({ name: t.year, value: t.total })),
+      },
+      {
+        id: 'crimeRate',
+        label: 'Crime rate per 100,000 population',
+        short: 'Crime rate',
+        unit: 'per 100,000',
+        format: (v) => v.toFixed(1),
+        higherIsBetter: false,
+        note: 'Cases per 100,000 people, which normalises for population growth.',
+        points: fallbackOverview.nationalTrend.map((t) => ({ name: t.year, value: t.rate })),
+      },
+    ],
+    caveats: CRIME_CAVEATS,
+    source: 'NCRB Crime in India',
+    prompts: ['Which year had the most crimes?', 'Summarise this page', 'Is the crime rate rising?'],
+  },
+  {
+    route: '/women',
+    title: 'Crimes against women',
+    blurb: 'Recorded crimes against women by state, and how the composition has shifted.',
+    series: [
+      {
+        id: 'womenRate',
+        label: 'Crimes against women per 100,000 women',
+        short: 'Women crime rate',
+        unit: 'per 100,000 women',
+        format: (v) => v.toFixed(1),
+        higherIsBetter: false,
+        note: 'Registered cases per 100,000 women. Reporting rates vary enormously by state, so this is a measure of registration too.',
+        points: fallbackWomenSafety.stateRates.map((s) => ({ name: s.name, value: s.rate })),
+      },
+    ],
+    caveats: CRIME_CAVEATS,
+    source: 'NCRB Crime in India, chapter 5',
+    prompts: ['Which state has the highest rate?', 'Which state has the lowest?', 'Summarise this page'],
+  },
+  {
+    route: '/cyber',
+    title: 'Cybercrime',
+    blurb: 'Cybercrime cases recorded by NCRB against complaints on the I4C portal.',
+    series: [
+      {
+        id: 'cyberCases',
+        label: 'Cybercrime cases recorded',
+        short: 'Cyber cases',
+        unit: 'cases',
+        format: nf,
+        higherIsBetter: false,
+        points: fallbackCybercrime.ncrbTrend.map((t) => ({ name: t.year, value: t.cases })),
+      },
+    ],
+    caveats: [
+      'NCRB counts FIR-registered cases; I4C counts citizen complaints. The gap between them is the story, not an error.',
+      ...CRIME_CAVEATS.slice(0, 1),
+    ],
+    source: 'NCRB Crime in India + I4C',
+    prompts: ['Which year had the most cases?', 'Summarise this page'],
+  },
+  {
+    route: '/safety',
+    title: "Women's safety — 50-country comparison",
+    blurb: 'Past-year intimate-partner violence prevalence against a rule-of-law score, across 50 countries.',
+    series: [
+      {
+        id: 'ipv',
+        label: 'Past-year intimate-partner violence prevalence',
+        short: 'IPV prevalence',
+        unit: '% of ever-partnered women',
+        format: (v) => `${v.toFixed(1)}%`,
+        higherIsBetter: false,
+        note: 'Women affected at least once in the past year — not criminal incidents, and not comparable to police-recorded counts.',
+        points: SAFETY_ROWS.map((r) => ({ name: r.country, value: r.ipv })),
+      },
+      {
+        id: 'ruleOfLaw',
+        label: 'Rule of law score',
+        short: 'Rule of law',
+        unit: '0–1 index',
+        format: (v) => v.toFixed(2),
+        higherIsBetter: true,
+        points: SAFETY_ROWS.map((r) => ({ name: r.country, value: r.ruleOfLaw })),
+      },
+    ],
+    caveats: [
+      'PROVISIONAL: these figures were compiled by hand and have not been audited against the underlying country tables.',
+      'Prevalence counts women affected, not incidents, so it is not comparable to police-recorded crime counts.',
+      'Fifty countries is a small sample for a cross-country correlation; treat any r here as descriptive.',
+    ],
+    source: 'Working analysis (provisional)',
+    prompts: ['Where does India rank?', 'Which country has the highest prevalence?', 'Is prevalence related to rule of law?'],
+  },
+  {
     route: '/census/methodology',
     title: 'Census methodology',
     blurb: 'Sources, boundary reconciliation, missing cells and limits.',
@@ -210,7 +334,9 @@ const CONTEXTS: PageContext[] = [
 const DEFAULT_CONTEXT: PageContext = {
   route: '/',
   title: 'India in Data',
-  blurb: 'Crime, census, climate, air and the economy — one explorer.',
+  blurb:
+    'Crime, census, climate, air and the economy — one explorer. This route has no page-specific context, ' +
+    'so answers come from the national figures.',
   series: [...crimeSeries(), ...censusSeries()],
   caveats: [...CRIME_CAVEATS, ...CENSUS_CAVEATS],
   source: 'NCRB × Census of India 2011',

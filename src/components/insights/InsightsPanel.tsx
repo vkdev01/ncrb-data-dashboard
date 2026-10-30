@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { answer as localAnswer, answerToMarkdown, seriesToCsv, type Answer } from '@/lib/insights/engine';
 import { contextForPath } from '@/lib/insights/contexts';
+import { usePublishedPage } from './PageDataContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -124,7 +125,10 @@ function contextForModel(ctx: ReturnType<typeof contextForPath>): string {
 
 export function InsightsPanel() {
   const pathname = usePathname() ?? '/';
-  const ctx = useMemo(() => contextForPath(pathname), [pathname]);
+  // A page that fetched its own data wins over the static route registry — it is
+  // the only context guaranteed to match what is on screen.
+  const published = usePublishedPage();
+  const ctx = useMemo(() => published ?? contextForPath(pathname), [published, pathname]);
 
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -180,10 +184,12 @@ export function InsightsPanel() {
 
   useEffect(() => setConfig(loadConfig()), []);
 
-  // Reset the thread when the reader moves to another page — the context changed.
+  // Reset the thread when the reader moves to another page, or when the page
+  // swaps its dataset (a different city, a different indicator) — the context
+  // changed, so a previous answer would no longer be about what is on screen.
   useEffect(() => {
     setMessages([]);
-  }, [pathname]);
+  }, [pathname, ctx.title]);
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;

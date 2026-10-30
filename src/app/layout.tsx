@@ -4,6 +4,7 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { DomainTabs } from '@/components/layout/DomainTabs';
 import { Footer } from '@/components/layout/Footer';
+import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { site } from '@/config/site';
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <DomainTabs />
         <main className="wrap">{children}</main>
         <Footer />
+        <InsightsPanel />
       </body>
     </html>
   );

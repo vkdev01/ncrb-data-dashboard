@@ -56,6 +56,8 @@ npm run fetch-data # refresh the bundled data snapshot
 - **Live data with a bundled fallback** — each dataset declares a live URL and a snapshot; a badge on every page says which one you are seeing.
 - **Choropleth map** — state and district views, rank-based shading, click a state to list its districts. The census map adds a district-level mode for the three measures the census publishes at that geography.
 - **Derived, not invented** — shares, gaps, headcounts, bands and correlations are computed from published figures at render time, so no page hard-codes a number it cannot trace to a source.
+- **Paginated tables** — every long table has a sticky header, a rows-per-page selector and pager; the CSV export always contains every filtered row, not just the visible page.
+- **Ask this page** — a panel on every route that answers questions about the numbers on it (highest, lowest, compare two places, rank, average, distribution, correlation). Answers are computed in the browser from the same data as the charts, so no key and no network are needed; each answer is badged "computed from this page". An optional OpenAI-compatible endpoint can be configured to answer with a model instead, and the panel says which engine produced each answer. The conversation downloads as Markdown and the underlying series as CSV.
 - **CSV export** — every table (and the map) can be downloaded.
 - **Shareable URLs** — the map encodes its level, metric and selection in the query string.
 - **Dark mode** — follows the system by default, with an explicit toggle.

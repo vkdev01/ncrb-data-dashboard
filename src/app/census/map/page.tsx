@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ChoroplethMap } from '@/components/charts/ChoroplethMap';
 import { ExportButton } from '@/components/ui/ExportButton';
+import { DataTable, type Column } from '@/components/ui/DataTable';
 import { useGeo } from '@/lib/hooks/useGeo';
 import { censusMeta, censusStates } from '@/lib/data/census';
 import { censusDistricts } from '@/lib/data/districts';
@@ -124,6 +125,12 @@ export default function CensusMapPage() {
   const missing = censusStates.length - stateRows.length;
 
   const districtRows = [...districtView.rows].sort((a, b) => b.v - a.v);
+
+  const districtColumns: Column<{ d: string; s: string; v: number }>[] = [
+    { key: 'd', header: 'District', render: (r) => r.d, sortValue: (r) => r.d },
+    { key: 's', header: 'State / UT', render: (r) => <span className="muted">{r.s}</span>, sortValue: (r) => r.s },
+    { key: 'v', header: 'Value', align: 'right', render: (r) => dMetric.format(r.v), sortValue: (r) => r.v },
+  ];
 
   const activeLabel = level === 'state' ? metric.label : dMetric.label;
   const activeFormat = level === 'state' ? metric.format : dMetric.format;
@@ -286,32 +293,12 @@ export default function CensusMapPage() {
               />
             }
           >
-            <div className="table-wrap">
-              <table className="dtable">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'right' }}>#</th>
-                    <th>District</th>
-                    <th>State / UT</th>
-                    <th style={{ textAlign: 'right' }}>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {districtRows.slice(0, 40).map((r, i) => (
-                    <tr key={`${r.s}-${r.d}`}>
-                      <td className="num" style={{ textAlign: 'right' }}>{i + 1}</td>
-                      <td>{r.d}</td>
-                      <td className="muted">{r.s}</td>
-                      <td className="num" style={{ textAlign: 'right' }}>{dMetric.format(r.v)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="muted" style={{ fontSize: '0.82rem', marginTop: 10 }}>
-              Top 40 shown; the CSV has all {districtView.rows.length}. Largest district population:{' '}
-              {districtRows[0]?.d} ({compactIN(districtRows[0]?.v ?? 0)}).
-            </p>
+            <DataTable
+              rows={districtRows}
+              columns={districtColumns}
+              initialSort="v"
+              pageSize={25}
+            />
           </Card>
         )}
 

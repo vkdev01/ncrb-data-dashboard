@@ -1,10 +1,16 @@
-# NCRB Data Dashboard
+# India in Data
 
-An interactive, fully static dashboard for India's **NCRB** (*National Crime Records Bureau*) statistics — national trends, offence heads, state-wise rates, crimes against women and cybercrime.
+An interactive, fully static explorer of India in numbers: **NCRB** crime statistics, the **Census of India 2011**, a warming climate, live air quality, sixty years of the economy, and how India compares on women's safety.
 
 Built with **Next.js (App Router) + TypeScript**, exported as a static site and deployed to GitHub Pages. No server, no database, no API key.
 
-> **Not an official NCRB product.** Figures are as published by NCRB and its re-publishers. Verify against the source reports before quoting. See the **About** page in the app for the full methodology and limitations.
+> **Not an official product of NCRB, the Office of the Registrar General, or any government body.** Figures are as published by each source. Verify against the source reports before quoting. Every section carries its own methodology page listing sources, reconciliation and limitations.
+
+## The census section
+
+`/census` is a ten-page statistical profile of India from the **2011 census** — the last completed one. Population, density, decadal growth, sex ratio and child sex ratio, literacy by sex, urbanisation, age structure, and the largest cities. It also carries the cross-metric analysis (`/census/insights`), a genuine **district-level map** (`/census/map`, district toggle), a **state-vs-state comparison** (`/census/compare`), a profile page for each of the 36 states and UTs (`/census/state/[id]`), and — the page that only exists because this app holds two datasets — **registered crime against literacy and urbanisation** (`/census/crime`).
+
+Nothing in it is modelled. Where a value was never published at a geography (Telangana, Ladakh and the merged DNH & Daman and Diu for child sex ratio and literacy), the cell is `null`, the table shows "—", and the map leaves it grey. `/census/methodology` documents the boundary reconciliation and the four derived measures.
 
 ---
 
@@ -31,13 +37,25 @@ npm run fetch-data # refresh the bundled data snapshot
 | `/cyber` | Cybercrime FIRs, composition, and the I4C portal-vs-FIR reporting gap |
 | `/justice` | Police strength against sanctioned posts, and the FIR → charge-sheet → conviction pipeline |
 | `/transition` | The 2024 IPC → BNS transition, head by head, with reclassification flags and contribution analysis |
+| `/census` | Census 2011 overview — national KPIs, regional split, distributions |
+| `/census/map` | Choropleth of 16 state measures **and** 3 district measures |
+| `/census/population` · `/growth` · `/sex-ratio` · `/literacy` · `/urbanisation` | One page per measure, with bands, rankings and scatter plots |
+| `/census/age` | Population pyramid, dependency ratios, females per 1,000 males by age band |
+| `/census/cities` | Largest cities with 2001 → 2011 growth, and size-vs-growth scatter |
+| `/census/states` | Master table — every measure, region filter, CSV export |
+| `/census/state/[id]` | Profile page for each of the 36 states and UTs |
+| `/census/compare` | Any two states side by side, with ranks |
+| `/census/insights` | Correlations, quadrant scatters, regional aggregates |
+| `/census/crime` | Crime rate against census measures — and why the relationship confounds |
+| `/census/methodology` | Sources, boundary reconciliation, missing cells, limits |
 | `/glossary` | Plain-language definitions of the crime heads, legal categories and statistical terms |
 | `/about` | Methodology, sources and limitations |
 
 ## Features
 
 - **Live data with a bundled fallback** — each dataset declares a live URL and a snapshot; a badge on every page says which one you are seeing.
-- **Choropleth map** — state and district views, rank-based shading, click a state to list its districts.
+- **Choropleth map** — state and district views, rank-based shading, click a state to list its districts. The census map adds a district-level mode for the three measures the census publishes at that geography.
+- **Derived, not invented** — shares, gaps, headcounts, bands and correlations are computed from published figures at render time, so no page hard-codes a number it cannot trace to a source.
 - **CSV export** — every table (and the map) can be downloaded.
 - **Shareable URLs** — the map encodes its level, metric and selection in the query string.
 - **Dark mode** — follows the system by default, with an explicit toggle.

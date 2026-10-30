@@ -53,8 +53,12 @@ export const nav: NavItem[] = [
   { href: '/census/sex-ratio', label: 'Sex ratio', blurb: 'Women per 1,000 men, and the child ratio.', domain: 'census' },
   { href: '/census/literacy', label: 'Literacy', blurb: 'Total, male, female — and the gap between them.', domain: 'census' },
   { href: '/census/urbanisation', label: 'Urbanisation', blurb: 'The urban share, and where the cities are.', domain: 'census' },
+  { href: '/census/age', label: 'Age', blurb: 'The population pyramid and dependency ratios.', domain: 'census' },
+  { href: '/census/cities', label: 'Cities', blurb: 'The largest cities and how fast they grew.', domain: 'census' },
+  { href: '/census/compare', label: 'Compare', blurb: 'Any two states, every measure, side by side.', domain: 'census' },
   { href: '/census/states', label: 'All measures', blurb: 'Every measure, every state, one table.', domain: 'census' },
   { href: '/census/insights', label: 'Insights', blurb: 'Cross-metric analysis and correlations.', domain: 'census' },
+  { href: '/census/crime', label: 'Crime × Census', blurb: 'Crime rates against literacy, urbanisation and sex ratio.', domain: 'census' },
   { href: '/census/methodology', label: 'Method', blurb: 'Sources, reconciliation and limits.', domain: 'census' },
 
   // ---- climate ----

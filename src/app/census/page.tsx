@@ -22,7 +22,11 @@ const SUBPAGES = [
   { href: '/census/sex-ratio', label: 'Sex ratio', blurb: 'Women per 1,000 men — and the child ratio that reveals son preference.' },
   { href: '/census/literacy', label: 'Literacy', blurb: 'Total, male and female rates, and the gap between them.' },
   { href: '/census/urbanisation', label: 'Urbanisation', blurb: 'The urban share, and the states that hold India’s cities.' },
-  { href: '/census/map', label: 'Map', blurb: 'Any census measure, choropleth, state by state.' },
+  { href: '/census/age', label: 'Age structure', blurb: 'The population pyramid and what the dependency ratio implies.' },
+  { href: '/census/cities', label: 'Cities', blurb: 'The largest cities and how fast each grew to 2011.' },
+  { href: '/census/map', label: 'Map', blurb: 'Sixteen state measures and three district measures, choropleth.' },
+  { href: '/census/compare', label: 'Compare', blurb: 'Any two states, every measure, side by side.' },
+  { href: '/census/crime', label: 'Crime × Census', blurb: 'Registered crime against literacy and urbanisation — and why it confounds.' },
 ];
 
 export default function CensusOverviewPage() {
@@ -159,6 +163,18 @@ export default function CensusOverviewPage() {
             {METRICS.map((m) => (
               <span className="chip" key={m.id} title={m.blurb}>{m.short}</span>
             ))}
+          </div>
+        </Card>
+
+        <Card title="State profiles" caption="Every state and union territory has its own page — all measures, ranks, and its regional average.">
+          <div className="chip-row">
+            {[...censusStates]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((s) => (
+                <Link key={s.id} href={`/census/state/${s.id}`} className="chip">
+                  {s.name}
+                </Link>
+              ))}
           </div>
         </Card>
 

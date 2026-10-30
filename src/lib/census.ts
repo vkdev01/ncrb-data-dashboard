@@ -50,8 +50,9 @@ export const sexRatioChange = (s: CensusState) =>
   s.sexRatio == null || s.sexRatio2001 == null ? null : s.sexRatio - s.sexRatio2001;
 
 /** Change in child sex ratio, 2001 → 2011. */
-export const childSexRatioChange = (s: CensusState) =>
-  s.childSexRatio == null || s.childSexRatio2001 == null ? null : s.childSexRatio - s.childSexRatio2001;
+export function childSexRatioChange(s: CensusState): number | null {
+  return s.childSexRatio == null || s.childSexRatio2001 == null ? null : s.childSexRatio - s.childSexRatio2001;
+}
 
 /** Females per 1,000 males, computed from the population split (a cross-check on the published ratio). */
 export const sexRatioComputed = (s: CensusState) =>
@@ -214,6 +215,58 @@ export const METRICS: CensusMetric[] = [
     format: int,
     higherIsBetter: null,
     blurb: 'Derived from the published urban share. A high percentage and a high count are different stories.',
+  },
+  {
+    id: 'ruralPct',
+    label: 'Rural share of population',
+    short: 'Rural %',
+    unit: '%',
+    group: 'Settlement',
+    from: '#f2f1ec',
+    to: '#78716c',
+    get: (s) => (s.urbanPct == null ? null : 100 - s.urbanPct),
+    format: (v) => `${one(v)}%`,
+    higherIsBetter: null,
+    blurb: 'The mirror of the urban share. Useful because the two ends of the ranking are different stories.',
+  },
+  {
+    id: 'area',
+    label: 'Area (km²)',
+    short: 'Area',
+    unit: 'km²',
+    group: 'Size',
+    from: '#eef2f7',
+    to: '#475569',
+    get: (s) => s.area,
+    format: int,
+    higherIsBetter: null,
+    blurb: 'Land area. Rajasthan alone is larger than most countries; the union territories are rounding errors.',
+  },
+  {
+    id: 'females',
+    label: 'Female population',
+    short: 'Women',
+    unit: 'persons',
+    group: 'Gender',
+    from: '#fdeef4',
+    to: '#831843',
+    get: (s) => s.females,
+    format: int,
+    higherIsBetter: null,
+    blurb: 'Absolute count of women. Read with the sex ratio — a large number and a low ratio can coexist.',
+  },
+  {
+    id: 'childSexRatioChange',
+    label: 'Child sex-ratio change, 2001 → 2011',
+    short: 'CSR change',
+    unit: 'points',
+    group: 'Gender',
+    from: '#b91c1c',
+    to: '#15803d',
+    get: (s) => childSexRatioChange(s),
+    format: (v) => `${v >= 0 ? '+' : ''}${zero(v)}`,
+    higherIsBetter: true,
+    blurb: 'Direction of travel for girls per 1,000 boys. Most of India moved the wrong way over the decade.',
   },
 ];
 

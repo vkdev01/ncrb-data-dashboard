@@ -3,10 +3,10 @@
 export const site = {
   name: 'India in Data',
   shortName: 'India',
-  tagline: 'Crime, climate, air, economy and society — one explorer',
+  tagline: 'Crime, census, climate, air, economy and society — one explorer',
   description:
-    'An open, interactive explorer of India: NCRB crime statistics, a warming climate, live air quality, ' +
-    'sixty years of economic progress and how India compares on women’s safety.',
+    'An open, interactive explorer of India: NCRB crime statistics, the 2011 census, a warming climate, live air ' +
+    'quality, sixty years of economic progress and how India compares on women’s safety.',
   repo: 'https://github.com/vkdev01/ncrb-data-dashboard',
 };
 
@@ -25,6 +25,7 @@ export interface NavItem {
 /** Top-level domains, in the order they appear in the header. */
 export const domains: Domain[] = [
   { id: 'crime', label: 'Crime' },
+  { id: 'census', label: 'Census' },
   { id: 'climate', label: 'Climate' },
   { id: 'air', label: 'Air' },
   { id: 'economy', label: 'Economy' },
@@ -43,6 +44,18 @@ export const nav: NavItem[] = [
   { href: '/cyber', label: 'Cybercrime', blurb: 'Cyber offences and the I4C reporting gap.', domain: 'crime' },
   { href: '/justice', label: 'Justice', blurb: 'Police strength and the FIR-to-conviction pipeline.', domain: 'crime' },
   { href: '/transition', label: 'IPC→BNS', blurb: 'The 2024 criminal-law transition, head by head.', domain: 'crime' },
+
+  // ---- census (2011) ----
+  { href: '/census', label: 'Overview', blurb: 'The national picture: 1.21 billion people in 2011.', domain: 'census' },
+  { href: '/census/map', label: 'Map', blurb: 'Any census measure, choropleth, state by state.', domain: 'census' },
+  { href: '/census/population', label: 'Population', blurb: 'Scale, share of India, and density.', domain: 'census' },
+  { href: '/census/growth', label: 'Growth', blurb: 'Decadal growth, 2001 → 2011.', domain: 'census' },
+  { href: '/census/sex-ratio', label: 'Sex ratio', blurb: 'Women per 1,000 men, and the child ratio.', domain: 'census' },
+  { href: '/census/literacy', label: 'Literacy', blurb: 'Total, male, female — and the gap between them.', domain: 'census' },
+  { href: '/census/urbanisation', label: 'Urbanisation', blurb: 'The urban share, and where the cities are.', domain: 'census' },
+  { href: '/census/states', label: 'All measures', blurb: 'Every measure, every state, one table.', domain: 'census' },
+  { href: '/census/insights', label: 'Insights', blurb: 'Cross-metric analysis and correlations.', domain: 'census' },
+  { href: '/census/methodology', label: 'Method', blurb: 'Sources, reconciliation and limits.', domain: 'census' },
 
   // ---- climate ----
   { href: '/climate', label: 'Warming', blurb: 'How much hotter each Indian city has become since 1950.', domain: 'climate' },
@@ -81,6 +94,11 @@ export function domainEntry(domain: string): string {
 
 export const sources = [
   { name: 'NCRB — Crime in India', url: 'https://www.ncrb.gov.in/', note: 'Primary publisher of crime statistics.' },
+  {
+    name: 'Census of India 2011',
+    url: 'https://censusindia.gov.in/',
+    note: 'Population, literacy, sex ratio and settlement — the latest completed census. Next census reference date: 1 March 2027.',
+  },
   { name: 'Open-Meteo', url: 'https://open-meteo.com/', note: 'Historical climate archive and live air quality, CC BY 4.0.' },
   { name: 'World Bank Open Data', url: 'https://data.worldbank.org/', note: 'Economic and development indicators.' },
   { name: 'Indian Data Project', url: 'https://indiandataproject.org/open-data', note: 'NCRB-derived JSON feeds.' },

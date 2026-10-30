@@ -218,55 +218,80 @@ export function InsightsPanel() {
 
       // ---- model engine (opt-in)
       try {
-        const res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
-          body: JSON.stringify({
-            model: config.model,
-            temperature: 0.2,
-            // Without an explicit cap some providers default very low, and a
-            // reasoning model can spend the whole budget before writing a word.
-            max_tokens: 900,
-            messages: [
-              {
-                role: 'system',
-                content:
-                  'You are a careful data analyst embedded in a dashboard about India. Answer only from the DATA ' +
-                  'below. Quote real numbers with units. If the data cannot answer the question, say so plainly ' +
-                  'rather than inventing anything. Keep answers under 120 words unless asked for a list. ' +
-                  'Mention a relevant caveat when it changes the interpretation.\n\nDATA:\n' +
-                  contextForModel(ctx),
-              },
-              { role: 'user', content: q },
-            ],
-          }),
-        });
+        const systemPrompt =
+          'You are a careful data analyst embedded in a dashboard about India. Answer only from the DATA ' +
+          'below. Quote real numbers with units. If the data cannot answer the question, say so plainly ' +
+          'rather than inventing anything. Keep answers under 120 words unless asked for a list. ' +
+          'Mention a relevant caveat when it changes the interpretation.\n\nDATA:\n' +
+          contextForModel(ctx);
 
-        const body = await res.text();
-        if (!res.ok) throw new Error(`HTTP ${res.status} — ${body.slice(0, 180)}`);
+        /**
+         * Reasoning models spend the completion budget on thinking before they
+         * write anything, so a budget that looks generous can still end in
+         * `finish_reason: "length"` with an empty answer. Retry with more room
+         * rather than giving up — but only when the cut-off was the cause, since
+         * retrying a malformed response just wastes the reader's time.
+         */
+        const budgets = [2048, 4096];
+        let lastJson: unknown = null;
+        let lastFinish: string | undefined;
+        let answerText = '';
+        let answerFound = 'content';
 
-        let json: unknown;
-        try {
-          json = JSON.parse(body);
-        } catch {
-          throw new Error(`Response was not JSON: ${body.slice(0, 180)}`);
+        for (const budget of budgets) {
+          const res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
+            body: JSON.stringify({
+              model: config.model,
+              temperature: 0.2,
+              max_tokens: budget,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: q },
+              ],
+            }),
+          });
+
+          const body = await res.text();
+          if (!res.ok) throw new Error(`HTTP ${res.status} — ${body.slice(0, 180)}`);
+
+          let json: unknown;
+          try {
+            json = JSON.parse(body);
+          } catch {
+            throw new Error(`Response was not JSON: ${body.slice(0, 180)}`);
+          }
+
+          const { text, finish, found } = extractText(json);
+          lastJson = json;
+          lastFinish = finish;
+
+          if (text) {
+            answerText = text;
+            answerFound = found;
+            break;
+          }
+          if (finish !== 'length') break; // not a budget problem — retrying will not help
         }
 
-        const { text, finish, found } = extractText(json);
-
-        if (!text) {
+        if (!answerText) {
+          const hitLimit = lastFinish === 'length';
           setMessages((m) => [
             ...m,
             {
               role: 'assistant',
-              text:
-                `The endpoint answered, but I could not find any text in the reply (finish_reason: ${finish ?? 'none'}, ` +
-                `looked in content / reasoning_content / text). That usually means the model spent its budget on ` +
-                `reasoning, or the provider uses a different response shape. Here is the computed answer instead.`,
+              text: hitLimit
+                ? `The model used its whole token budget on reasoning and never wrote an answer ` +
+                  `(finish_reason: length, even at ${budgets[budgets.length - 1]} tokens). This is a reasoning-model ` +
+                  `habit, not a problem with your key. Two things work: ask a narrower question, or switch the model ` +
+                  `in Model settings to a non-reasoning one. Here is the computed answer instead.`
+                : `The endpoint answered, but I could not find any text in it (finish_reason: ${lastFinish ?? 'none'}; ` +
+                  `looked in content, reasoning_content, choice.text and output_text). Here is the computed answer instead.`,
               answer: computed,
               engine: 'computed',
               error: true,
-              diagnostic: JSON.stringify(json, null, 2).slice(0, 900),
+              diagnostic: JSON.stringify(lastJson, null, 2).slice(0, 900),
             },
           ]);
           return;
@@ -276,7 +301,7 @@ export function InsightsPanel() {
           ...m,
           {
             role: 'assistant',
-            text: found === 'reasoning_content' ? `${text}\n\n_(returned as reasoning_content)_` : text,
+            text: answerFound === 'reasoning_content' ? `${answerText}\n\n_(returned as reasoning_content)_` : answerText,
             engine: 'model',
           },
         ]);

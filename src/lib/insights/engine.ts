@@ -137,6 +137,16 @@ export function matchSeries(q: string, series: Series[]): { series: Series; scor
   return scored[0] && scored[0].score > 0 ? scored[0] : null;
 }
 
+/** The n best-matching measures for a question, strongest first. */
+export function topSeries(q: string, ctx: PageContext, n: number): Series[] {
+  return ctx.series
+    .map((s) => ({ s, score: seriesScore(q, s) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n)
+    .map((x) => x.s);
+}
+
 /**
  * Places (states, cities, age bands) mentioned in the question.
  *
@@ -188,14 +198,14 @@ export function matchEntities(q: string, ctx: PageContext): { name: string; seri
 const INTENT_WORDS: { id: string; words: string[] }[] = [
   { id: 'summarise', words: ['summarise', 'summarize', 'summary', 'overview', 'what does this page', 'tl dr', 'tldr', 'main points', 'key points', 'tell me about this'] },
   { id: 'correlation', words: ['correlat', 'relationship', 'related', 'linked', 'associated', 'go together', 'depend'] },
+  { id: 'outlier', words: ['outlier', 'unusual', 'surprising', 'stands out', 'anomal', 'exception'] },
   { id: 'compare', words: ['compare', ' vs ', ' versus ', 'difference between', 'against', 'better than', 'worse than'] },
   { id: 'rank', words: ['rank', 'where does', 'where do', 'position', 'stand'] },
   { id: 'average', words: ['average', 'mean', 'median', 'typical', 'on average'] },
   { id: 'distribution', words: ['distribution', 'spread', 'range', 'vary', 'variation', 'diverse'] },
   { id: 'change', words: ['change', 'changed', 'improve', 'improved', 'worse', 'decline', 'since 2001', 'over the decade', 'trend', 'grew from'] },
   { id: 'count', words: ['how many', 'count', 'number of'] },
-  { id: 'explain', words: ['what is', 'what does', 'meaning', 'define', 'explain', 'why is'] },
-  { id: 'outlier', words: ['outlier', 'unusual', 'surprising', 'stands out', 'anomal', 'exception'] },
+  { id: 'explain', words: ['what is', 'what does', 'meaning', 'define', 'explain', 'why is', 'why does', 'why do', 'why are'] },
   { id: 'top', words: ['highest', 'most', 'top', 'largest', 'best', 'maximum', 'max', 'leading', 'which state has the most'] },
   { id: 'bottom', words: ['lowest', 'least', 'smallest', 'worst', 'minimum', 'min', 'bottom', 'fewest'] },
 ];
@@ -330,6 +340,58 @@ export function answer(question: string, ctx: PageContext): Answer {
         };
       }
     }
+    // "crime rate vs literacy" compares two MEASURES, not two places. The old
+    // code only understood place-vs-place, so it replied "name two places" —
+    // which is why measure-comparison questions, the bread and butter of the
+    // crime page, looked broken.
+    const two = topSeries(q, ctx, 2);
+    if (two.length === 2) {
+      const byName = new Map(two[1].points.map((p) => [norm(p.name), p.value]));
+      const pairs: { name: string; a: number; b: number }[] = [];
+      for (const p of two[0].points) {
+        const v = byName.get(norm(p.name));
+        if (typeof v === 'number') pairs.push({ name: p.name, a: p.value, b: v });
+      }
+      const r = pearson(pairs.map((p) => [p.a, p.b]));
+      if (r == null) {
+        return {
+          intent: 'compare-measures',
+          text: `**${two[0].short}** and **${two[1].short}** do not share enough places to compare directly.`,
+          confidence: 0.4,
+        };
+      }
+
+      // The interesting part is not r, it is who sits off the line.
+      const meanA = mean(pairs.map((p) => p.a));
+      const meanB = mean(pairs.map((p) => p.b));
+      const quadrant = pairs
+        .map((p) => ({ ...p, z: (p.a - meanA) / (Math.abs(meanA) || 1) + (p.b - meanB) / (Math.abs(meanB) || 1) }))
+        .sort((x, y) => Math.abs(y.z) - Math.abs(x.z))
+        .slice(0, 4);
+
+      const strength = Math.abs(r) > 0.6 ? 'strong' : Math.abs(r) > 0.35 ? 'moderate' : 'weak';
+      const caveat =
+        two.some((s) => s.id === 'crimeRate')
+          ? ' Remember what the crime axis actually is: registered cases per head, which tracks how diligently a state records crime as much as how much crime there is. Kerala topping the crime table is the standard example — it registers more, not necessarily suffers more.'
+          : '';
+
+      return {
+        intent: 'compare-measures',
+        text:
+          `**${two[0].short}** against **${two[1].short}**, across ${pairs.length} places: ${strength} ` +
+          `${r > 0 ? 'positive' : 'negative'} correlation, **r = ${r.toFixed(2)}**. ` +
+          `${two[0].short} runs ${two[0].format(Math.min(...two[0].points.map((p) => p.value)))} to ${two[0].format(Math.max(...two[0].points.map((p) => p.value)))}, ` +
+          `${two[1].short} runs ${two[1].format(Math.min(...two[1].points.map((p) => p.value)))} to ${two[1].format(Math.max(...two[1].points.map((p) => p.value)))}.${caveat}`,
+        bullets: quadrant.map(
+          (p) =>
+            `**${p.name}** — ${two[0].short} ${two[0].format(p.a)}, ${two[1].short} ${two[1].format(p.b)}` +
+            (p.z > 0 ? ' (high on both)' : ' (low on both)'),
+        ),
+        seriesId: two[0].id,
+        confidence: 0.8,
+      };
+    }
+
     if (matched) {
       return {
         intent: 'compare',
@@ -397,6 +459,25 @@ export function answer(question: string, ctx: PageContext): Answer {
   }
 
   /* ---------------------------------------------------------------- explain */
+  if (intent === 'explain' && entities.length === 1) {
+    const e = entities[0];
+    const s = ctx.series.find((x) => x.id === e.series.id) ?? e.series;
+    const p = s.points.find((x) => norm(x.name) === norm(e.name));
+    if (p) {
+      const ranked = [...s.points].sort((x, y) => y.value - x.value);
+      const rank = ranked.findIndex((x) => x.name === p.name) + 1;
+      return {
+        intent: 'explain',
+        text:
+          `**${p.name}** is ${s.format(p.value)} on **${s.short}** — rank ${rank} of ${ranked.length}, against a median of ` +
+          `${s.format(median(s.points.map((x) => x.value)))}. ${s.note ?? ''} This page can tell you the size of the gap, ` +
+          `not its cause: the data is a snapshot, and a single measure rarely explains itself.`,
+        seriesId: s.id,
+        confidence: 0.7,
+      };
+    }
+  }
+
   if (intent === 'explain' && matched) {
     const s = matched.series;
     return {
@@ -408,6 +489,44 @@ export function answer(question: string, ctx: PageContext): Answer {
   }
 
   /* ---------------------------------------------------------------- outliers */
+  if (intent === 'outlier') {
+    // "outliers in crime rate vs literacy" is not a question about one series —
+    // it is about the places that break the relationship between two. Compare
+    // standardised scores: whoever is high on one and low on the other is the
+    // outlier worth explaining.
+    const two = topSeries(q, ctx, 2);
+    if (two.length === 2) {
+      const byName = new Map(two[1].points.map((p) => [norm(p.name), p.value]));
+      const shared = two[0].points
+        .map((p) => ({ name: p.name, a: p.value, b: byName.get(norm(p.name)) }))
+        .filter((p): p is { name: string; a: number; b: number } => typeof p.b === 'number');
+      if (shared.length >= 5) {
+        const mA = mean(shared.map((p) => p.a));
+        const mB = mean(shared.map((p) => p.b));
+        const sdA = Math.sqrt(mean(shared.map((p) => (p.a - mA) ** 2))) || 1;
+        const sdB = Math.sqrt(mean(shared.map((p) => (p.b - mB) ** 2))) || 1;
+        const scored = shared
+          .map((p) => ({ ...p, gap: (p.a - mA) / sdA - (p.b - mB) / sdB }))
+          .sort((x, y) => Math.abs(y.gap) - Math.abs(x.gap));
+        const r = pearson(shared.map((p) => [p.a, p.b]));
+        return {
+          intent: 'outlier',
+          text:
+            `The outliers worth explaining are not the extremes of either measure — they are the places that sit off the ` +
+            `relationship between **${two[0].short}** and **${two[1].short}** (r = ${r == null ? '—' : r.toFixed(2)}, ` +
+            `${shared.length} places). These disagree most between the two:`,
+          bullets: scored.slice(0, 5).map(
+            (p) =>
+              `**${p.name}** — ${two[0].short} ${two[0].format(p.a)}, ${two[1].short} ${two[1].format(p.b)} ` +
+              `(${p.gap > 0 ? `far higher on ${two[0].short} than on ${two[1].short}` : `far lower on ${two[0].short} than on ${two[1].short}`})`,
+          ),
+          seriesId: two[0].id,
+          confidence: 0.8,
+        };
+      }
+    }
+  }
+
   if (intent === 'outlier' && matched) {
     const s = matched.series;
     const vals = s.points.map((p) => p.value);

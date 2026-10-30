@@ -28,6 +28,56 @@ interface Message {
   answer?: Answer;
   engine?: 'computed' | 'model';
   error?: boolean;
+  /** Raw provider payload, shown when the response could not be read. */
+  diagnostic?: string;
+}
+
+/**
+ * Pull the assistant text out of a chat-completions response.
+ *
+ * Providers disagree about where the answer lives: OpenAI puts it in
+ * `choices[0].message.content` as a string, newer ones send an array of parts,
+ * and reasoning models (Sarvam-M, and anything hybrid-thinking) often return an
+ * empty `content` with the actual text in `reasoning_content`. Reading only the
+ * first of those is how you end up with a 200 and an empty bubble.
+ */
+function extractText(json: unknown): { text: string; finish?: string; found: string } {
+  const j = json as {
+    choices?: { message?: { content?: unknown; reasoning_content?: unknown }; text?: unknown; finish_reason?: string }[];
+    output_text?: unknown;
+  };
+  const choice = j?.choices?.[0];
+  const msg = choice?.message ?? {};
+  const finish = choice?.finish_reason;
+
+  const asText = (v: unknown): string => {
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) {
+      return v
+        .map((part) => {
+          if (typeof part === 'string') return part;
+          const p = part as { text?: unknown; content?: unknown };
+          if (typeof p?.text === 'string') return p.text;
+          if (typeof p?.content === 'string') return p.content;
+          return '';
+        })
+        .join('');
+    }
+    return '';
+  };
+
+  const candidates: [string, unknown][] = [
+    ['content', msg.content],
+    ['reasoning_content', msg.reasoning_content],
+    ['choice.text', choice?.text],
+    ['output_text', j?.output_text],
+  ];
+
+  for (const [where, value] of candidates) {
+    const text = asText(value).trim();
+    if (text) return { text, finish, found: where };
+  }
+  return { text: '', finish, found: 'none' };
 }
 
 interface ModelConfig {
@@ -82,7 +132,51 @@ export function InsightsPanel() {
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [config, setConfig] = useState<ModelConfig>(DEFAULT_CONFIG);
+  const [testResult, setTestResult] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Ping the configured endpoint with a one-word prompt and report where the
+   * text came back. Provider response shapes differ, and this is the fastest way
+   * to tell "wrong key" from "wrong parser" from "model ignored me".
+   */
+  async function testEndpoint() {
+    setTestResult('Testing…');
+    try {
+      const res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: 40,
+          messages: [{ role: 'user', content: 'Reply with the single word: OK' }],
+        }),
+      });
+      const body = await res.text();
+      if (!res.ok) {
+        setTestResult(`HTTP ${res.status} — ${body.slice(0, 240)}`);
+        return;
+      }
+      let json: unknown;
+      try {
+        json = JSON.parse(body);
+      } catch {
+        setTestResult(`Non-JSON response: ${body.slice(0, 240)}`);
+        return;
+      }
+      const { text, finish, found } = extractText(json);
+      setTestResult(
+        text
+          ? `Reachable. Text found in \`${found}\` (finish: ${finish ?? 'n/a'}): "${text.slice(0, 90)}"`
+          : `Reachable, but no text in the reply (finish: ${finish ?? 'none'}). Shape: ${body.slice(0, 240)}`,
+      );
+    } catch (err) {
+      setTestResult(
+        `Request failed: ${err instanceof Error ? err.message : 'unknown'}. A browser fetch to another origin ` +
+          `needs that origin to allow CORS; if it does not, the computed engine still works.`,
+      );
+    }
+  }
 
   useEffect(() => setConfig(loadConfig()), []);
 
@@ -130,6 +224,9 @@ export function InsightsPanel() {
           body: JSON.stringify({
             model: config.model,
             temperature: 0.2,
+            // Without an explicit cap some providers default very low, and a
+            // reasoning model can spend the whole budget before writing a word.
+            max_tokens: 900,
             messages: [
               {
                 role: 'system',
@@ -144,10 +241,45 @@ export function InsightsPanel() {
             ],
           }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const text = json?.choices?.[0]?.message?.content ?? '(empty response)';
-        setMessages((m) => [...m, { role: 'assistant', text, engine: 'model' }]);
+
+        const body = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status} — ${body.slice(0, 180)}`);
+
+        let json: unknown;
+        try {
+          json = JSON.parse(body);
+        } catch {
+          throw new Error(`Response was not JSON: ${body.slice(0, 180)}`);
+        }
+
+        const { text, finish, found } = extractText(json);
+
+        if (!text) {
+          setMessages((m) => [
+            ...m,
+            {
+              role: 'assistant',
+              text:
+                `The endpoint answered, but I could not find any text in the reply (finish_reason: ${finish ?? 'none'}, ` +
+                `looked in content / reasoning_content / text). That usually means the model spent its budget on ` +
+                `reasoning, or the provider uses a different response shape. Here is the computed answer instead.`,
+              answer: computed,
+              engine: 'computed',
+              error: true,
+              diagnostic: JSON.stringify(json, null, 2).slice(0, 900),
+            },
+          ]);
+          return;
+        }
+
+        setMessages((m) => [
+          ...m,
+          {
+            role: 'assistant',
+            text: found === 'reasoning_content' ? `${text}\n\n_(returned as reasoning_content)_` : text,
+            engine: 'model',
+          },
+        ]);
       } catch (err) {
         setMessages((m) => [
           ...m,
@@ -263,10 +395,14 @@ export function InsightsPanel() {
                 <span className={`badge ${useModel ? 'badge-live' : 'badge-muted'}`}>
                   <span className="dot" /> {useModel ? `model: ${config.model}` : 'computed locally'}
                 </span>
-                <button className="btn-ghost" onClick={() => saveConfig({ ...DEFAULT_CONFIG, apiKey: '' })}>
+                <button className="btn-ghost" onClick={testEndpoint} disabled={!config.apiKey || testResult === 'Testing…'}>
+                  Test
+                </button>
+                <button className="btn-ghost" onClick={() => { saveConfig({ ...DEFAULT_CONFIG, apiKey: '' }); setTestResult(null); }}>
                   Clear
                 </button>
               </div>
+              {testResult ? <pre className="ai-diag-pre">{testResult}</pre> : null}
             </div>
           ) : null}
 
@@ -298,6 +434,12 @@ export function InsightsPanel() {
                     <p key={j}>{line.replace(/\*\*/g, '')}</p>
                   ))}
                 </div>
+                {m.diagnostic ? (
+                  <details className="ai-diag">
+                    <summary>Raw response</summary>
+                    <pre>{m.diagnostic}</pre>
+                  </details>
+                ) : null}
                 {m.answer?.bullets?.length ? (
                   <ul className="ai-bullets">
                     {m.answer.bullets.map((b, j) => (
